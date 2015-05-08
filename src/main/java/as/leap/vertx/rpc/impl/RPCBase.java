@@ -17,9 +17,6 @@ import java.util.Map;
  */
 abstract class RPCBase {
 
-  protected static final String SERVICE_NAME = "serviceName";
-  protected static final String METHOD_NAME = "methodName";
-
   private WireProtocol wireProtocol;
 
   public RPCBase(WireProtocol wireProtocol) {
@@ -77,7 +74,7 @@ abstract class RPCBase {
         ProtobufIOUtil.mergeFrom(bytes, object, schema);
         break;
       case JSON:
-        //if length of bytes is zero, we have wrap it as null.
+        //if length of bytes is zero, we have to wrap it as null.
         if (bytes.length == 0) object = null;
         else JsonIOUtil.mergeFrom(bytes, object, schema, false);
         break;

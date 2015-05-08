@@ -5,6 +5,6 @@ package as.leap.vertx.rpc;
  */
 public enum CallbackType {
 
-  ASYNC_HANDLER, REACTIVE, COMPLETE_FUTURE
+  ASYNC_HANDLER, REACTIVE, COMPLETABLE_FUTURE
 
 }

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  *
  */
-public interface ExampleObserableSPI {
+public interface SampleObserableSPI {
 
   //complex object
   Observable<Department> getDepartment(User user);

@@ -1,7 +1,7 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.Department;
-import as.leap.rpc.example.spi.ExampleHandlerSPI;
+import as.leap.rpc.example.spi.SampleHandlerSPI;
 import as.leap.rpc.example.spi.User;
 import as.leap.rpc.example.spi.Weeks;
 import io.vertx.core.AsyncResult;
@@ -16,7 +16,7 @@ import java.util.List;
 /**
  *
  */
-public class ExampleHandlerServiceImpl implements ExampleHandlerSPI {
+public class SampleHandlerServiceImpl implements SampleHandlerSPI {
 
   @Override
   public void getDepartment(User user, Handler<AsyncResult<Department>> handler) {
@@ -69,6 +69,7 @@ public class ExampleHandlerServiceImpl implements ExampleHandlerSPI {
 
   @Override
   public void nullInvoke(User user, Handler<AsyncResult<User>> handler) {
+    Assert.assertNull(user);
     handler.handle(Future.succeededFuture(null));
   }
 

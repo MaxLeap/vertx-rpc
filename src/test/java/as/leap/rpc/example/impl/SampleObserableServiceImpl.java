@@ -1,7 +1,7 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.Department;
-import as.leap.rpc.example.spi.ExampleObserableSPI;
+import as.leap.rpc.example.spi.SampleObserableSPI;
 import as.leap.rpc.example.spi.User;
 import as.leap.rpc.example.spi.Weeks;
 import org.junit.Assert;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  *
  */
-public class ExampleObserableServiceImpl implements ExampleObserableSPI {
+public class SampleObserableServiceImpl implements SampleObserableSPI {
   @Override
   public Observable<Department> getDepartment(User user) {
     Assert.assertEquals(1, user.getId());
@@ -64,6 +64,7 @@ public class ExampleObserableServiceImpl implements ExampleObserableSPI {
 
   @Override
   public Observable<User> nullInvoke(User user) {
+    Assert.assertNull(user);
     return Observable.just(null);
   }
 }

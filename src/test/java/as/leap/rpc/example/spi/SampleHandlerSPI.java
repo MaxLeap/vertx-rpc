@@ -10,7 +10,7 @@ import java.util.List;
 /**
  *
  */
-public interface ExampleHandlerSPI {
+public interface SampleHandlerSPI {
 
   //complex object
   void getDepartment(User user, Handler<AsyncResult<Department>> handler);

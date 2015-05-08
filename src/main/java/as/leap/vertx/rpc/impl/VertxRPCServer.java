@@ -12,6 +12,7 @@ import rx.Observable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  *
@@ -85,6 +86,13 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
             else replyFail(event.cause(), message);
           };
           service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          break;
+        case COMPLETABLE_FUTURE:
+          CompletableFuture<?> future = (CompletableFuture) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          future.whenComplete((result, ex) -> {
+            if (ex != null) replyFail(ex, message);
+            else replySuccess(result, message);
+          });
           break;
       }
     } catch (Exception e) {

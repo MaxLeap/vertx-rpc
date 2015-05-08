@@ -1,7 +1,8 @@
 package as.leap.rpc.example;
 
-import as.leap.rpc.example.impl.ExampleHandlerServiceImpl;
-import as.leap.rpc.example.impl.ExampleObserableServiceImpl;
+import as.leap.rpc.example.impl.SampleFutureServiceImpl;
+import as.leap.rpc.example.impl.SampleHandlerServiceImpl;
+import as.leap.rpc.example.impl.SampleObserableServiceImpl;
 import as.leap.rpc.example.spi.*;
 import as.leap.vertx.rpc.CallbackType;
 import as.leap.vertx.rpc.WireProtocol;
@@ -23,37 +24,48 @@ import java.util.List;
 @RunWith(io.vertx.ext.unit.junit.VertxUnitRunner.class)
 public class EventBusRPCTest {
 
-  private static ExampleHandlerSPI exampleHandlerSPI;
-  private static ExampleObserableSPI exampleObsSPI;
+  private static SampleHandlerSPI sampleHandlerSPI;
+  private static SampleObserableSPI exampleObsSPI;
+  private static SampleFutureSPI sampleFutureSPI;
 
   @BeforeClass
   public static void beforeClass() {
     Vertx vertx = new VertxFactoryImpl().vertx();
     String busAddressHandler = "serviceAddressHandler";
     String busAddressObs = "serviceAddressObs";
+    String busAddressFuture = "serviceAddressFuture";
 
     //handler
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
-        .addService(new ExampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
+        .addService(new SampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
 
-    RPCClientOptions<ExampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<ExampleHandlerSPI>(vertx)
-        .setBusAddress(busAddressHandler).setServiceClass(ExampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
-    exampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
+    RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx)
+        .setBusAddress(busAddressHandler).setServiceClass(SampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
+    sampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
 
     //reactive
     new VertxRPCServer(new RPCServerOptions(vertx)
-        .setBusAddress(busAddressObs).addService(new ExampleObserableServiceImpl()).setCallbackType(CallbackType.REACTIVE));
+        .setBusAddress(busAddressObs).addService(new SampleObserableServiceImpl()).setCallbackType(CallbackType.REACTIVE));
 
-    RPCClientOptions<ExampleObserableSPI> rpcClientObsOptions = new RPCClientOptions<ExampleObserableSPI>(vertx)
-        .setBusAddress(busAddressObs).setServiceClass(ExampleObserableSPI.class).setCallbackType(CallbackType.REACTIVE);
+    RPCClientOptions<SampleObserableSPI> rpcClientObsOptions = new RPCClientOptions<SampleObserableSPI>(vertx)
+        .setBusAddress(busAddressObs).setServiceClass(SampleObserableSPI.class).setCallbackType(CallbackType.REACTIVE);
     exampleObsSPI = new VertxRPCClient<>(rpcClientObsOptions).bindService();
+
+    //completableFuture
+    new VertxRPCServer(new RPCServerOptions(vertx)
+        .setBusAddress(busAddressFuture).addService(new SampleFutureServiceImpl()).setCallbackType(CallbackType.COMPLETABLE_FUTURE));
+
+    RPCClientOptions<SampleFutureSPI> rpcClientFutureOptions = new RPCClientOptions<SampleFutureSPI>(vertx)
+        .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class).setCallbackType(CallbackType.COMPLETABLE_FUTURE);
+    sampleFutureSPI = new VertxRPCClient<>(rpcClientFutureOptions).bindService();
+
   }
 
   @Test
   public void handlerOne(TestContext testContext) {
     Async async = testContext.async();
     User user = new User(1, "name");
-    exampleHandlerSPI.getDepartment(user, departmentAsyncResult -> {
+    sampleHandlerSPI.getDepartment(user, departmentAsyncResult -> {
       if (departmentAsyncResult.succeeded()) {
         assertOne(departmentAsyncResult.result(), testContext, async);
       } else {
@@ -65,7 +77,7 @@ public class EventBusRPCTest {
   @Test
   public void handlerTwo(TestContext testContext) {
     Async async = testContext.async();
-    exampleHandlerSPI.getDepartment(1, 2, departmentAsyncResult -> {
+    sampleHandlerSPI.getDepartment(1, 2, departmentAsyncResult -> {
       if (departmentAsyncResult.succeeded()) {
         assertTwo(departmentAsyncResult.result(), testContext, async);
       } else {
@@ -77,7 +89,7 @@ public class EventBusRPCTest {
   @Test
   public void handlerThree(TestContext testContext) {
     Async async = testContext.async();
-    exampleHandlerSPI.getBytes("name".getBytes(), asyncResult -> {
+    sampleHandlerSPI.getBytes("name".getBytes(), asyncResult -> {
       if (asyncResult.succeeded()) {
         assertThree(asyncResult.result(), testContext, async);
       } else {
@@ -94,7 +106,7 @@ public class EventBusRPCTest {
     user.setId(1);
     users.add(user);
 
-    exampleHandlerSPI.getDepartList(users, asyncResult -> {
+    sampleHandlerSPI.getDepartList(users, asyncResult -> {
       if (asyncResult.succeeded()) {
         assertFour(asyncResult.result(), testContext, async);
       } else {
@@ -106,7 +118,7 @@ public class EventBusRPCTest {
   @Test
   public void handlerFive(TestContext testContext) {
     Async async = testContext.async();
-    exampleHandlerSPI.getDayOfWeek(Weeks.SUNDAY, asyncResult -> {
+    sampleHandlerSPI.getDayOfWeek(Weeks.SUNDAY, asyncResult -> {
       if (asyncResult.succeeded()) {
         assertFive(asyncResult.result(), testContext, async);
       } else {
@@ -118,7 +130,7 @@ public class EventBusRPCTest {
   @Test
   public void handleSix(TestContext testContext) {
     Async async = testContext.async();
-    exampleHandlerSPI.someException(asyncResult -> {
+    sampleHandlerSPI.someException(asyncResult -> {
       if (asyncResult.succeeded()) {
         testContext.fail("should not be success.");
       } else {
@@ -130,7 +142,7 @@ public class EventBusRPCTest {
   @Test
   public void handleSeven(TestContext testContext) {
     Async async = testContext.async();
-    exampleHandlerSPI.nullInvoke(null, asyncResult -> {
+    sampleHandlerSPI.nullInvoke(null, asyncResult -> {
       if (asyncResult.succeeded()) {
         assertSeven(asyncResult.result(), testContext, async);
       } else {
@@ -188,6 +200,77 @@ public class EventBusRPCTest {
   public void obsSeven(TestContext testContext) {
     Async async = testContext.async();
     exampleObsSPI.nullInvoke(null).subscribe(result -> assertSeven(result, testContext, async), testContext::fail);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+
+  @Test
+  public void futureOne(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    sampleFutureSPI.getDepartment(user).whenComplete((department, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertOne(department, testContext, async);
+    });
+
+  }
+
+  @Test
+  public void futureTwo(TestContext testContext) {
+    Async async = testContext.async();
+    sampleFutureSPI.getDepartment(1, 2).whenComplete((department, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertTwo(department, testContext, async);
+    });
+  }
+
+  @Test
+  public void futureThree(TestContext testContext) {
+    Async async = testContext.async();
+    sampleFutureSPI.getBytes("name".getBytes()).whenComplete((result, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertThree(result, testContext, async);
+    });
+  }
+
+  @Test
+  public void futureFour(TestContext testContext) {
+    Async async = testContext.async();
+    List<User> users = new ArrayList<>();
+    User user = new User();
+    user.setId(1);
+    users.add(user);
+    sampleFutureSPI.getDepartList(users).whenComplete((result, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertFour(result, testContext, async);
+    });
+  }
+
+  @Test
+  public void futureFive(TestContext testContext) {
+    Async async = testContext.async();
+    sampleFutureSPI.getDayOfWeek(Weeks.SUNDAY).whenComplete((result, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertFive(result, testContext, async);
+    });
+  }
+
+  @Test
+  public void futureSix(TestContext testContext) {
+    Async async = testContext.async();
+    sampleFutureSPI.someException().whenComplete((result, throwable) -> {
+      if (throwable != null) assertSix(throwable, testContext, async);
+      else testContext.fail();
+    });
+  }
+
+  @Test
+  public void futureSeven(TestContext testContext) {
+    Async async = testContext.async();
+    sampleFutureSPI.nullInvoke(null).whenComplete((result, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertSeven(result, testContext, async);
+    });
   }
 
   //--------------------------------------------------------------------------------------------------------------------

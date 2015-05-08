@@ -18,6 +18,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -82,7 +83,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
     switch (options.getCallbackType()) {
       case REACTIVE:
-        return Observable.create(new ResponseHandler<Object>() {
+        return Observable.create(new ReactiveHandler<Object>() {
           @Override
           void execute() throws Exception {
             invoke(request, this);
@@ -92,12 +93,16 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
         invoke(request, handler);
         return null;
+      case COMPLETABLE_FUTURE:
+        CompletableFutureHandler<Object> futureHandler = new CompletableFutureHandler<>();
+        invoke(request, futureHandler);
+        return futureHandler.future;
       default:
         throw new VertxRPCException("unKnow the type of callback.");
     }
   }
 
-  private static abstract class ResponseHandler<T> implements Observable.OnSubscribe<T>, Handler<AsyncResult<T>> {
+  private static abstract class ReactiveHandler<T> implements Observable.OnSubscribe<T>, Handler<AsyncResult<T>> {
     private Observer<? super T> observer;
 
     @Override
@@ -128,6 +133,19 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
 
     abstract void execute() throws Exception;
+  }
+
+  private static class CompletableFutureHandler<T> implements Handler<AsyncResult<T>> {
+    private CompletableFuture<T> future = new CompletableFuture<>();
+
+    @Override
+    public void handle(AsyncResult<T> event) {
+      if (event.succeeded()) {
+        future.complete(event.result());
+      } else {
+        future.completeExceptionally(event.cause());
+      }
+    }
   }
 
   private <E> void invoke(RPCRequest request, Handler<AsyncResult<E>> responseHandler) throws Exception {
