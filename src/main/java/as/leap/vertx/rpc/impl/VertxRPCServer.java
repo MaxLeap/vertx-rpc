@@ -9,7 +9,6 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.shareddata.LocalMap;
 import rx.Observable;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -17,11 +16,14 @@ import java.util.Optional;
 /**
  *
  */
-public class VertxRPCServerInvoker implements RPCServer {
+public class VertxRPCServer extends RPCBase implements RPCServer {
   private final LocalMap<String, SharedWrapper> serviceMapping;
   private final MessageConsumer<byte[]> consumer;
+  private final RPCServerOptions options;
 
-  public VertxRPCServerInvoker(RPCServerOptions options) {
+  public VertxRPCServer(RPCServerOptions options) {
+    super(options.getWireProtocol());
+    this.options = options;
     this.serviceMapping = options.getServiceMapping();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
     this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());
@@ -31,8 +33,8 @@ public class VertxRPCServerInvoker implements RPCServer {
   private void registryService() {
     consumer.handler(message -> {
       try {
-        RPCRequest request = Codec.asObject(message.body(), RPCRequest.class);
-        VertxRPCServerInvoker.this.call(request, message);
+        RPCRequest request = asObject(message.body(), RPCRequest.class);
+        VertxRPCServer.this.call(request, message);
       } catch (Exception e) {
         replyFail(e, message);
       }
@@ -57,7 +59,7 @@ public class VertxRPCServerInvoker implements RPCServer {
           byte[] argBytes = (byte[]) argList.get(i + 1);
 
           Class<?> argClass = Class.forName(argClassName);
-          Object arg = Codec.asObject(argBytes, argClass);
+          Object arg = asObject(argBytes, argClass);
           //check type for get real class and real value
           if (arg instanceof WrapperType) {
             argClasses[index] = ((WrapperType) arg).getClazz();
@@ -68,22 +70,22 @@ public class VertxRPCServerInvoker implements RPCServer {
           }
         }
       }
-      try {
-        //try obserable first
-        Method method = service.getClass().getMethod(request.getMethodName(), argClasses);
-        Observable<?> observable = (Observable) method.invoke(service, args);
-        observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
-      } catch (NoSuchMethodException e) {
-        //try handler
-        argClasses = Arrays.copyOf(argClasses, argClasses.length + 1);
-        argClasses[argClasses.length - 1] = Handler.class;
-        args = Arrays.copyOf(args, args.length + 1);
-        args[args.length - 1] = (Handler<AsyncResult<T>>) event -> {
-          if (event.succeeded()) replySuccess(event.result(), message);
-          else replyFail(event.cause(), message);
-        };
-        Method method = service.getClass().getMethod(request.getMethodName(), argClasses);
-        method.invoke(service, args);
+
+      switch (options.getCallbackType()) {
+        case REACTIVE:
+          Observable<?> observable = (Observable) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
+          break;
+        case ASYNC_HANDLER:
+          argClasses = Arrays.copyOf(argClasses, argClasses.length + 1);
+          argClasses[argClasses.length - 1] = Handler.class;
+          args = Arrays.copyOf(args, args.length + 1);
+          args[args.length - 1] = (Handler<AsyncResult<T>>) event -> {
+            if (event.succeeded()) replySuccess(event.result(), message);
+            else replyFail(event.cause(), message);
+          };
+          service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          break;
       }
     } catch (Exception e) {
       replyFail(e, message);
@@ -96,14 +98,14 @@ public class VertxRPCServerInvoker implements RPCServer {
     try {
       if (Optional.ofNullable(result).isPresent()) {
         Class<?> resultClass = result.getClass();
-        resultClassName = Codec.isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
-        resultBytes = Codec.asBytes(result);
+        resultClassName = isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
+        resultBytes = asBytes(result);
       } else {
         // result is null, so we have wrap it.
         resultClassName = WrapperType.class.getName();
       }
       RPCResponse response = new RPCResponse(resultClassName, resultBytes);
-      byte[] responseBytes = Codec.asBytes(response);
+      byte[] responseBytes = asBytes(response);
       message.reply(responseBytes);
     } catch (Exception e) {
       replyFail(e, message);

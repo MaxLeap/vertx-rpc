@@ -24,13 +24,16 @@ import java.util.stream.Stream;
 /**
  *
  */
-public class VertxRPCClientInvoker<T> implements InvocationHandler, RPCClient<T> {
+public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPCClient<T> {
   private Class<T> service;
   private Vertx vertx;
+  private RPCClientOptions options;
   private String serviceAddress;
   private long timeout;
 
-  public VertxRPCClientInvoker(RPCClientOptions<T> options) {
+  public VertxRPCClient(RPCClientOptions<T> options) {
+    super(options.getWireProtocol());
+    this.options = options;
     this.vertx = options.getVertx();
     this.timeout = options.getTimeout();
     this.serviceAddress = options.getBusAddress();
@@ -53,7 +56,7 @@ public class VertxRPCClientInvoker<T> implements InvocationHandler, RPCClient<T>
         .collect(Collectors.toList());
 
     List<String> argsClassName = argsClass.stream().map(clazz -> {
-      if (Codec.isWrapType(clazz)) {
+      if (isWrapType(clazz)) {
         return WrapperType.class.getName();
       } else {
         return clazz.getName();
@@ -67,27 +70,30 @@ public class VertxRPCClientInvoker<T> implements InvocationHandler, RPCClient<T>
       if (argOptional.isPresent()) {
         argList.add(argsClassName.get(index));
         Class<?> argClass = argsClass.get(index);
-        argBytes = Codec.asBytes(argOptional.get(), argClass);
+        argBytes = asBytes(argOptional.get(), argClass);
       } else {
         //the argument is null, so we have to wrap it.
         argList.add(WrapperType.class.getName());
-        argBytes = Codec.asBytes(new WrapperType(null, argsClass.get(index)), WrapperType.class);
+        argBytes = asBytes(new WrapperType(null, argsClass.get(index)), WrapperType.class);
       }
       argList.add(argBytes);
     }
-
     request.setArgs(argList);
-    if (method.getReturnType().equals(void.class)) {
-      Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
-      invoke(request, handler);
-      return null;
-    } else {
-      return Observable.create(new ResponseHandler<Object>() {
-        @Override
-        void execute() throws Exception {
-          invoke(request, this);
-        }
-      });
+
+    switch (options.getCallbackType()) {
+      case REACTIVE:
+        return Observable.create(new ResponseHandler<Object>() {
+          @Override
+          void execute() throws Exception {
+            invoke(request, this);
+          }
+        });
+      case ASYNC_HANDLER:
+        Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
+        invoke(request, handler);
+        return null;
+      default:
+        throw new VertxRPCException("unKnow the type of callback.");
     }
   }
 
@@ -128,10 +134,10 @@ public class VertxRPCClientInvoker<T> implements InvocationHandler, RPCClient<T>
     Handler<AsyncResult<Message<byte[]>>> messageHandler = message -> {
       if (message.succeeded()) {
         try {
-          RPCResponse response = Codec.asObject(message.result().body(), RPCResponse.class);
+          RPCResponse response = asObject(message.result().body(), RPCResponse.class);
           String responseTypeName = response.getResponseTypeName();
           byte[] responseBytes = response.getResponse();
-          Object result = Codec.asObject(responseBytes, (Class<E>) Class.forName(responseTypeName));
+          Object result = asObject(responseBytes, (Class<E>) Class.forName(responseTypeName));
           E realResult = (E) (result instanceof WrapperType ? ((WrapperType) result).getValue() : result);
           responseHandler.handle(Future.succeededFuture(realResult));
         } catch (Exception e) {
@@ -143,7 +149,7 @@ public class VertxRPCClientInvoker<T> implements InvocationHandler, RPCClient<T>
     };
     DeliveryOptions deliveryOptions = new DeliveryOptions();
     deliveryOptions.setSendTimeout(timeout);
-    byte[] requestBytes = Codec.asBytes(request);
+    byte[] requestBytes = asBytes(request);
     vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, messageHandler);
   }
 }

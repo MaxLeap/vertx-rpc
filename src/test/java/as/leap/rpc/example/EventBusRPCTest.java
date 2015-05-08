@@ -3,10 +3,12 @@ package as.leap.rpc.example;
 import as.leap.rpc.example.impl.ExampleHandlerServiceImpl;
 import as.leap.rpc.example.impl.ExampleObserableServiceImpl;
 import as.leap.rpc.example.spi.*;
+import as.leap.vertx.rpc.CallbackType;
+import as.leap.vertx.rpc.WireProtocol;
 import as.leap.vertx.rpc.impl.RPCClientOptions;
 import as.leap.vertx.rpc.impl.RPCServerOptions;
-import as.leap.vertx.rpc.impl.VertxRPCClientInvoker;
-import as.leap.vertx.rpc.impl.VertxRPCServerInvoker;
+import as.leap.vertx.rpc.impl.VertxRPCClient;
+import as.leap.vertx.rpc.impl.VertxRPCServer;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.VertxFactoryImpl;
 import io.vertx.ext.unit.Async;
@@ -30,16 +32,21 @@ public class EventBusRPCTest {
     String busAddressHandler = "serviceAddressHandler";
     String busAddressObs = "serviceAddressObs";
 
-    //Server
-    new VertxRPCServerInvoker(new RPCServerOptions(vertx).setBusAddress(busAddressHandler).addService(new ExampleHandlerServiceImpl()));
-    new VertxRPCServerInvoker(new RPCServerOptions(vertx).setBusAddress(busAddressObs).addService(new ExampleObserableServiceImpl()));
+    //handler
+    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
+        .addService(new ExampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
 
-    //client
-    RPCClientOptions<ExampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<ExampleHandlerSPI>(vertx).setBusAddress(busAddressHandler).setServiceClass(ExampleHandlerSPI.class);
-    exampleHandlerSPI = new VertxRPCClientInvoker<>(rpcClientHandlerOptions).bindService();
+    RPCClientOptions<ExampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<ExampleHandlerSPI>(vertx)
+        .setBusAddress(busAddressHandler).setServiceClass(ExampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
+    exampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
 
-    RPCClientOptions<ExampleObserableSPI> rpcClientObsOptions = new RPCClientOptions<ExampleObserableSPI>(vertx).setBusAddress(busAddressObs).setServiceClass(ExampleObserableSPI.class);
-    exampleObsSPI = new VertxRPCClientInvoker<>(rpcClientObsOptions).bindService();
+    //reactive
+    new VertxRPCServer(new RPCServerOptions(vertx)
+        .setBusAddress(busAddressObs).addService(new ExampleObserableServiceImpl()).setCallbackType(CallbackType.REACTIVE));
+
+    RPCClientOptions<ExampleObserableSPI> rpcClientObsOptions = new RPCClientOptions<ExampleObserableSPI>(vertx)
+        .setBusAddress(busAddressObs).setServiceClass(ExampleObserableSPI.class).setCallbackType(CallbackType.REACTIVE);
+    exampleObsSPI = new VertxRPCClient<>(rpcClientObsOptions).bindService();
   }
 
   @Test

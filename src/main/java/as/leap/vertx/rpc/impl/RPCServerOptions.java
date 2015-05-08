@@ -1,5 +1,7 @@
 package as.leap.vertx.rpc.impl;
 
+import as.leap.vertx.rpc.CallbackType;
+import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.LocalMap;
 
@@ -12,6 +14,8 @@ public class RPCServerOptions {
   private String busAddress;
   private int maxBufferedMessages;
   private static final String SERVICE_MAP_NAME = "VERTX_RPC_SERVICE";
+  protected WireProtocol wireProtocol = WireProtocol.PROTOBUF;
+  protected CallbackType callbackType = CallbackType.ASYNC_HANDLER;
   LocalMap<String, SharedWrapper> serviceMapping;
 
   public RPCServerOptions(Vertx vertx) {
@@ -22,6 +26,8 @@ public class RPCServerOptions {
   public RPCServerOptions(Vertx vertx, RPCServerOptions other) {
     this.vertx = vertx;
     this.busAddress = other.getBusAddress();
+    this.wireProtocol = other.getWireProtocol();
+    this.callbackType = other.getCallbackType();
     this.serviceMapping = vertx.sharedData().getLocalMap(SERVICE_MAP_NAME);
   }
 
@@ -56,4 +62,21 @@ public class RPCServerOptions {
     return busAddress;
   }
 
+  public WireProtocol getWireProtocol() {
+    return wireProtocol;
+  }
+
+  public RPCServerOptions setWireProtocol(WireProtocol wireProtocol) {
+    this.wireProtocol = wireProtocol;
+    return this;
+  }
+
+  public CallbackType getCallbackType() {
+    return callbackType;
+  }
+
+  public RPCServerOptions setCallbackType(CallbackType callbackType) {
+    this.callbackType = callbackType;
+    return this;
+  }
 }

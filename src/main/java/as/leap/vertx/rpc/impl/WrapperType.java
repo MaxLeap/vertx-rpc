@@ -4,7 +4,6 @@ package as.leap.vertx.rpc.impl;
  *
  */
 class WrapperType<T> {
-
   private Class<T> clazz;
   private T value;
 
