@@ -1,6 +1,7 @@
-package as.leap.vertx.rpc;
+package as.leap.vertx.rpc.impl;
 
 
+import as.leap.vertx.rpc.RPCServer;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
@@ -23,6 +24,7 @@ public class VertxRPCServerInvoker implements RPCServer {
   public VertxRPCServerInvoker(RPCServerOptions options) {
     this.serviceMapping = options.getServiceMapping();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
+    this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());
     registryService();
   }
 

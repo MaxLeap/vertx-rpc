@@ -1,4 +1,4 @@
-package as.leap.vertx.rpc;
+package as.leap.vertx.rpc.impl;
 
 /**
  *

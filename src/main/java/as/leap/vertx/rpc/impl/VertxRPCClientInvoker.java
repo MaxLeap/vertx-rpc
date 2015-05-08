@@ -1,5 +1,7 @@
-package as.leap.vertx.rpc;
+package as.leap.vertx.rpc.impl;
 
+import as.leap.vertx.rpc.RPCClient;
+import as.leap.vertx.rpc.VertxRPCException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;

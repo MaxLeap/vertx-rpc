@@ -1,4 +1,4 @@
-package as.leap.vertx.rpc;
+package as.leap.vertx.rpc.impl;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.LocalMap;
@@ -10,6 +10,7 @@ public class RPCServerOptions {
 
   private Vertx vertx;
   private String busAddress;
+  private int maxBufferedMessages;
   private static final String SERVICE_MAP_NAME = "VERTX_RPC_SERVICE";
   LocalMap<String, SharedWrapper> serviceMapping;
 
@@ -30,6 +31,15 @@ public class RPCServerOptions {
 
   public RPCServerOptions addService(Object service) {
     serviceMapping.put(service.getClass().getInterfaces()[0].getCanonicalName(), new SharedWrapper<>(service));
+    return this;
+  }
+
+  public int getMaxBufferedMessages() {
+    return maxBufferedMessages;
+  }
+
+  public RPCServerOptions setMaxBufferedMessages(int maxBufferedMessages) {
+    this.maxBufferedMessages = maxBufferedMessages;
     return this;
   }
 

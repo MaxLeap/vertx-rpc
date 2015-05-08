@@ -1,4 +1,4 @@
-package as.leap.vertx.rpc;
+package as.leap.vertx.rpc.impl;
 
 import io.vertx.core.Vertx;
 
