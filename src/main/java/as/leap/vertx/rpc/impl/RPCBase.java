@@ -16,6 +16,7 @@ import java.util.Map;
  * Created by stream.
  */
 abstract class RPCBase {
+  protected static final String CALLBACK_TYPE = "callbackType";
 
   private WireProtocol wireProtocol;
 
@@ -80,5 +81,9 @@ abstract class RPCBase {
         break;
     }
     return object;
+  }
+
+  protected enum CallbackType {
+    ASYNC_HANDLER, REACTIVE, COMPLETABLE_FUTURE
   }
 }

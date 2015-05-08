@@ -81,24 +81,37 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
     request.setArgs(argList);
 
-    switch (options.getCallbackType()) {
+    CallbackType callbackType = getCallbackType(method.getReturnType());
+    switch (callbackType) {
       case REACTIVE:
         return Observable.create(new ReactiveHandler<Object>() {
           @Override
           void execute() throws Exception {
-            invoke(request, this);
+            invoke(request, callbackType, this);
           }
         });
       case ASYNC_HANDLER:
         Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
-        invoke(request, handler);
+        invoke(request, callbackType, handler);
         return null;
       case COMPLETABLE_FUTURE:
         CompletableFutureHandler<Object> futureHandler = new CompletableFutureHandler<>();
-        invoke(request, futureHandler);
+        invoke(request, callbackType, futureHandler);
         return futureHandler.future;
       default:
         throw new VertxRPCException("unKnow the type of callback.");
+    }
+  }
+
+  private CallbackType getCallbackType(Class<?> returnType) {
+    if (Observable.class.isAssignableFrom(returnType)) {
+      return CallbackType.REACTIVE;
+    } else if (CompletableFuture.class.isAssignableFrom(returnType)) {
+      return CallbackType.COMPLETABLE_FUTURE;
+    } else if (void.class.equals(returnType)) {
+      return CallbackType.ASYNC_HANDLER;
+    } else {
+      throw new VertxRPCException("unKnow the type of callback, for now, we just support Obserable CompletableFuture and Handler of vert.x");
     }
   }
 
@@ -148,7 +161,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <E> void invoke(RPCRequest request, Handler<AsyncResult<E>> responseHandler) throws Exception {
+  private <E> void invoke(RPCRequest request, CallbackType callBackType, Handler<AsyncResult<E>> responseHandler) throws Exception {
     Handler<AsyncResult<Message<byte[]>>> messageHandler = message -> {
       if (message.succeeded()) {
         try {
@@ -167,6 +180,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     };
     DeliveryOptions deliveryOptions = new DeliveryOptions();
     deliveryOptions.setSendTimeout(timeout);
+    deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
     byte[] requestBytes = asBytes(request);
     vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, messageHandler);
   }

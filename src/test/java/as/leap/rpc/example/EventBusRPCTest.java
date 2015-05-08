@@ -4,7 +4,6 @@ import as.leap.rpc.example.impl.SampleFutureServiceImpl;
 import as.leap.rpc.example.impl.SampleHandlerServiceImpl;
 import as.leap.rpc.example.impl.SampleObserableServiceImpl;
 import as.leap.rpc.example.spi.*;
-import as.leap.vertx.rpc.CallbackType;
 import as.leap.vertx.rpc.WireProtocol;
 import as.leap.vertx.rpc.impl.RPCClientOptions;
 import as.leap.vertx.rpc.impl.RPCServerOptions;
@@ -45,18 +44,18 @@ public class EventBusRPCTest {
 
     //reactive
     new VertxRPCServer(new RPCServerOptions(vertx)
-        .setBusAddress(busAddressObs).addService(new SampleObserableServiceImpl()).setCallbackType(CallbackType.REACTIVE));
+        .setBusAddress(busAddressObs).addService(new SampleObserableServiceImpl()));
 
     RPCClientOptions<SampleObserableSPI> rpcClientObsOptions = new RPCClientOptions<SampleObserableSPI>(vertx)
-        .setBusAddress(busAddressObs).setServiceClass(SampleObserableSPI.class).setCallbackType(CallbackType.REACTIVE);
+        .setBusAddress(busAddressObs).setServiceClass(SampleObserableSPI.class);
     exampleObsSPI = new VertxRPCClient<>(rpcClientObsOptions).bindService();
 
     //completableFuture
     new VertxRPCServer(new RPCServerOptions(vertx)
-        .setBusAddress(busAddressFuture).addService(new SampleFutureServiceImpl()).setCallbackType(CallbackType.COMPLETABLE_FUTURE));
+        .setBusAddress(busAddressFuture).addService(new SampleFutureServiceImpl()));
 
     RPCClientOptions<SampleFutureSPI> rpcClientFutureOptions = new RPCClientOptions<SampleFutureSPI>(vertx)
-        .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class).setCallbackType(CallbackType.COMPLETABLE_FUTURE);
+        .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class);
     sampleFutureSPI = new VertxRPCClient<>(rpcClientFutureOptions).bindService();
 
   }

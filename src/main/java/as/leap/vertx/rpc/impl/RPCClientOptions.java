@@ -1,6 +1,6 @@
 package as.leap.vertx.rpc.impl;
 
-import as.leap.vertx.rpc.CallbackType;
+
 import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 
@@ -12,9 +12,8 @@ public class RPCClientOptions<T> {
   private Vertx vertx;
   private String busAddress;
   private Class<T> serviceClass;
-  private long timeout = 20 * 1000L;
+  private long timeout = 10 * 1000L;
   private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
-  private CallbackType callbackType = CallbackType.ASYNC_HANDLER;
 
   public RPCClientOptions(Vertx vertx) {
     this.vertx = vertx;
@@ -25,7 +24,6 @@ public class RPCClientOptions<T> {
     this.busAddress = other.getBusAddress();
     this.timeout = other.getTimeout();
     this.wireProtocol = other.getWireProtocol();
-    this.callbackType = other.getCallbackType();
     this.serviceClass = other.getServiceClass();
   }
 
@@ -69,12 +67,4 @@ public class RPCClientOptions<T> {
     return this;
   }
 
-  public CallbackType getCallbackType() {
-    return callbackType;
-  }
-
-  public RPCClientOptions<T> setCallbackType(CallbackType callbackType) {
-    this.callbackType = callbackType;
-    return this;
-  }
 }

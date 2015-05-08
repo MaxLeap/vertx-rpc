@@ -72,7 +72,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
         }
       }
 
-      switch (options.getCallbackType()) {
+      switch (CallbackType.valueOf(message.headers().get(CALLBACK_TYPE))) {
         case REACTIVE:
           Observable<?> observable = (Observable) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
           observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
