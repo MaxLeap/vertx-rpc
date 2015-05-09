@@ -1,6 +1,7 @@
 package as.leap.vertx.rpc.impl;
 
 import as.leap.vertx.rpc.RPCClient;
+import as.leap.vertx.rpc.RequestProp;
 import as.leap.vertx.rpc.VertxRPCException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -8,6 +9,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.eventbus.ReplyException;
+import io.vertx.core.eventbus.ReplyFailure;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
@@ -82,24 +85,25 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     request.setArgs(argList);
 
     CallbackType callbackType = getCallbackType(method.getReturnType());
+    RequestProperties requestProperties = extractRequestProp(method);
     switch (callbackType) {
       case REACTIVE:
         return Observable.create(new ReactiveHandler<Object>() {
           @Override
           void execute() throws Exception {
-            invoke(request, callbackType, this);
+            invoke(request, requestProperties, callbackType, this);
           }
         });
       case ASYNC_HANDLER:
         Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
-        invoke(request, callbackType, handler);
+        invoke(request, requestProperties, callbackType, handler);
         return null;
       case COMPLETABLE_FUTURE:
         CompletableFutureHandler<Object> futureHandler = new CompletableFutureHandler<>();
-        invoke(request, callbackType, futureHandler);
+        invoke(request, requestProperties, callbackType, futureHandler);
         return futureHandler.future;
       default:
-        throw new VertxRPCException("unKnow the type of callback.");
+        throw new VertxRPCException("unKnow the type of callback");
     }
   }
 
@@ -161,8 +165,38 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <E> void invoke(RPCRequest request, CallbackType callBackType, Handler<AsyncResult<E>> responseHandler) throws Exception {
-    Handler<AsyncResult<Message<byte[]>>> messageHandler = message -> {
+  private <E> void invoke(RPCRequest request, RequestProperties requestProp, CallbackType callBackType, Handler<AsyncResult<E>> responseHandler) throws Exception {
+    DeliveryOptions deliveryOptions = new DeliveryOptions();
+    deliveryOptions.setSendTimeout(requestProp.getTimeout());
+    deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
+
+    byte[] requestBytes = asBytes(request);
+    ReplyHandler<E> replyHandler = new ReplyHandler<>(requestProp.getRetryTimes(), 0, requestBytes, deliveryOptions, responseHandler);
+    vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler);
+  }
+
+  /**
+   * EventBus reply Handler
+   *
+   * @param <E>
+   */
+  private class ReplyHandler<E> implements Handler<AsyncResult<Message<byte[]>>> {
+    private int retryTimes;
+    private int currentRetryTimes;
+    private byte[] requestBytes;
+    private DeliveryOptions deliveryOptions;
+    private Handler<AsyncResult<E>> responseHandler;
+
+    public ReplyHandler(int retryTimes, int currentRetryTimes, byte[] requestBytes, DeliveryOptions deliveryOptions, Handler<AsyncResult<E>> responseHandler) {
+      this.retryTimes = retryTimes;
+      this.currentRetryTimes = currentRetryTimes;
+      this.requestBytes = requestBytes;
+      this.deliveryOptions = deliveryOptions;
+      this.responseHandler = responseHandler;
+    }
+
+    @Override
+    public void handle(AsyncResult<Message<byte[]>> message) {
       if (message.succeeded()) {
         try {
           RPCResponse response = asObject(message.result().body(), RPCResponse.class);
@@ -175,13 +209,53 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           responseHandler.handle(Future.failedFuture(new VertxRPCException(e)));
         }
       } else {
-        responseHandler.handle(Future.failedFuture(message.cause()));
+        //filter timeout exception
+        Throwable throwable = message.cause();
+        if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.TIMEOUT && currentRetryTimes < retryTimes) {
+          this.currentRetryTimes++;
+          vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
+        } else {
+          responseHandler.handle(Future.failedFuture(throwable));
+        }
       }
-    };
-    DeliveryOptions deliveryOptions = new DeliveryOptions();
-    deliveryOptions.setSendTimeout(timeout);
-    deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
-    byte[] requestBytes = asBytes(request);
-    vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, messageHandler);
+    }
+  }
+
+  private RequestProperties extractRequestProp(Method method) {
+    return Optional.ofNullable(method.getAnnotation(RequestProp.class))
+        .map(requestProp -> {
+          RequestProperties requestProperties = new RequestProperties();
+          requestProperties.setTimeout(requestProp.timeout() == 0 ? timeout : requestProp.timeUnit().toMillis(requestProp.timeout()));
+          requestProperties.setRetryTimes(requestProp.retry());
+          return requestProperties;
+        }).orElse(new RequestProperties(timeout));
+  }
+
+  private static class RequestProperties {
+    private long timeout;
+    private int retryTimes = 0;
+
+    public RequestProperties() {
+    }
+
+    public RequestProperties(long timeout) {
+      this.timeout = timeout;
+    }
+
+    public void setTimeout(long timeout) {
+      this.timeout = timeout;
+    }
+
+    public void setRetryTimes(int retryTimes) {
+      this.retryTimes = retryTimes;
+    }
+
+    public long getTimeout() {
+      return timeout;
+    }
+
+    public int getRetryTimes() {
+      return retryTimes;
+    }
   }
 }

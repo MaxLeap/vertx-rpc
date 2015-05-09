@@ -6,6 +6,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.impl.LoggerFactory;
 import io.vertx.core.shareddata.LocalMap;
 import rx.Observable;
 
@@ -18,13 +20,13 @@ import java.util.concurrent.CompletableFuture;
  *
  */
 public class VertxRPCServer extends RPCBase implements RPCServer {
+  private static final Logger log = LoggerFactory.getLogger(VertxRPCServer.class);
+
   private final LocalMap<String, SharedWrapper> serviceMapping;
   private final MessageConsumer<byte[]> consumer;
-  private final RPCServerOptions options;
 
   public VertxRPCServer(RPCServerOptions options) {
     super(options.getWireProtocol());
-    this.options = options;
     this.serviceMapping = options.getServiceMapping();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
     this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());
@@ -121,6 +123,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   }
 
   private void replyFail(Throwable ex, Message<byte[]> message) {
+    log.error(ex.getMessage(), ex);
     message.fail(500, ex.getMessage());
   }
 

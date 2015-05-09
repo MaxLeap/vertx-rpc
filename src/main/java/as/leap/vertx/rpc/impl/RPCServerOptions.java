@@ -14,7 +14,7 @@ public class RPCServerOptions {
   private String busAddress;
   private int maxBufferedMessages;
   private static final String SERVICE_MAP_NAME = "VERTX_RPC_SERVICE";
-  protected WireProtocol wireProtocol = WireProtocol.PROTOBUF;
+  private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
   LocalMap<String, SharedWrapper> serviceMapping;
 
   public RPCServerOptions(Vertx vertx) {

@@ -3,6 +3,7 @@ package as.leap.rpc.example;
 import as.leap.rpc.example.impl.SampleFutureServiceImpl;
 import as.leap.rpc.example.impl.SampleHandlerServiceImpl;
 import as.leap.rpc.example.impl.SampleObserableServiceImpl;
+import as.leap.rpc.example.impl.SampleTimeoutRetryServiceImpl;
 import as.leap.rpc.example.spi.*;
 import as.leap.vertx.rpc.WireProtocol;
 import as.leap.vertx.rpc.impl.RPCClientOptions;
@@ -21,16 +22,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(io.vertx.ext.unit.junit.VertxUnitRunner.class)
-public class EventBusRPCTest {
+public class VertxRPCTest {
 
   private static SampleHandlerSPI sampleHandlerSPI;
   private static SampleObserableSPI exampleObsSPI;
   private static SampleFutureSPI sampleFutureSPI;
+  private static SampleTimeoutRetrySPI sampleTimeoutRetrySPI;
 
   @BeforeClass
   public static void beforeClass() {
     Vertx vertx = new VertxFactoryImpl().vertx();
     String busAddressHandler = "serviceAddressHandler";
+    String busAddressForTimeout = "serviceAddressTimeout";
     String busAddressObs = "serviceAddressObs";
     String busAddressFuture = "serviceAddressFuture";
 
@@ -58,7 +61,30 @@ public class EventBusRPCTest {
         .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class);
     sampleFutureSPI = new VertxRPCClient<>(rpcClientFutureOptions).bindService();
 
+    //Timeout and retry
+    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressForTimeout).addService(new SampleTimeoutRetryServiceImpl()));
+
+    RPCClientOptions<SampleTimeoutRetrySPI> rpcClientTimeoutOptions = new RPCClientOptions<SampleTimeoutRetrySPI>(vertx)
+        .setBusAddress(busAddressForTimeout).setServiceClass(SampleTimeoutRetrySPI.class);
+    sampleTimeoutRetrySPI = new VertxRPCClient<>(rpcClientTimeoutOptions).bindService();
+
   }
+
+
+  @Test
+  public void timeoutAndRetry(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    sampleTimeoutRetrySPI.getDepartment(user, departmentAsyncResult -> {
+      if (departmentAsyncResult.succeeded()) {
+        assertOne(departmentAsyncResult.result(), testContext, async);
+      } else {
+        testContext.fail(departmentAsyncResult.cause());
+      }
+    });
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
 
   @Test
   public void handlerOne(TestContext testContext) {
