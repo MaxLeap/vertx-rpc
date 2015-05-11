@@ -19,7 +19,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RunWith(io.vertx.ext.unit.junit.VertxUnitRunner.class)
 public class VertxRPCTest {
@@ -176,6 +178,23 @@ public class VertxRPCTest {
     });
   }
 
+  @Test
+  public void handlerEight(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    Map<String, User> userMap = new HashMap<>();
+    userMap.put("name", user);
+
+    sampleHandlerSPI.getDepartMap(userMap, asyncResult -> {
+      if (asyncResult.succeeded()) {
+        Map<String, Department> departmentMap = asyncResult.result();
+        assertEight(departmentMap, testContext, async);
+      } else {
+        testContext.fail(asyncResult.cause());
+      }
+    });
+  }
+
   //--------------------------------------------------------------------------------------------------------------------
 
   @Test
@@ -227,6 +246,14 @@ public class VertxRPCTest {
     exampleObsSPI.nullInvoke(null).subscribe(result -> assertSeven(result, testContext, async), testContext::fail);
   }
 
+  @Test
+  public void obsEight(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    Map<String, User> userMap = new HashMap<>();
+    userMap.put("name", user);
+    exampleObsSPI.getDepartMap(userMap).subscribe(result -> assertEight(result, testContext, async), testContext::fail);
+  }
   //--------------------------------------------------------------------------------------------------------------------
 
   @Test
@@ -298,6 +325,18 @@ public class VertxRPCTest {
     });
   }
 
+  @Test
+  public void futureEight(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    Map<String, User> userMap = new HashMap<>();
+    userMap.put("name", user);
+    sampleFutureSPI.getDepartMap(userMap).whenComplete((result, throwable) -> {
+      if (throwable != null) testContext.fail(throwable);
+      assertEight(result, testContext, async);
+    });
+  }
+
   //--------------------------------------------------------------------------------------------------------------------
 
   private void assertOne(Department department, TestContext testContext, Async async) {
@@ -312,7 +351,7 @@ public class VertxRPCTest {
   }
 
   private void assertThree(byte[] result, TestContext testContext, Async async) {
-    testContext.assertTrue(result.length == "name".getBytes().length);
+    testContext.assertEquals("name", new String(result));
     async.complete();
   }
 
@@ -333,6 +372,13 @@ public class VertxRPCTest {
 
   private void assertSeven(User user, TestContext testContext, Async async) {
     testContext.assertNull(user);
+    async.complete();
+  }
+
+  private void assertEight(Map<String, Department> departmentMap, TestContext testContext, Async async) {
+    testContext.assertNotNull(departmentMap);
+    testContext.assertEquals(1, departmentMap.size());
+    testContext.assertEquals("research", departmentMap.get("research").getName());
     async.complete();
   }
 }

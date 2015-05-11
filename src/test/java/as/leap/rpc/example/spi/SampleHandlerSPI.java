@@ -5,6 +5,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -23,6 +24,9 @@ public interface SampleHandlerSPI {
 
   //Collection
   void getDepartList(List<User> users, Handler<AsyncResult<List<Department>>> handler);
+
+  //HashMap
+  void getDepartMap(Map<String, User> userMap, Handler<AsyncResult<Map<String, Department>>> handler);
 
   //enum
   void getDayOfWeek(Weeks day, Handler<AsyncResult<Weeks>> handler);

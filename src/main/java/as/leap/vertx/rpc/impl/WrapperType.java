@@ -7,9 +7,6 @@ class WrapperType<T> {
   private Class<T> clazz;
   private T value;
 
-  public WrapperType() {
-  }
-
   public WrapperType(T value, Class<T> clazz) {
     this.value = value;
     this.clazz = clazz;
@@ -19,15 +16,7 @@ class WrapperType<T> {
     return clazz;
   }
 
-  public void setClazz(Class<T> clazz) {
-    this.clazz = clazz;
-  }
-
   public T getValue() {
     return value;
-  }
-
-  public void setValue(T value) {
-    this.value = value;
   }
 }

@@ -1,6 +1,7 @@
 package as.leap.rpc.example.spi;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -19,6 +20,9 @@ public interface SampleFutureSPI {
 
   //Collection
   CompletableFuture<List<Department>> getDepartList(List<User> users);
+
+  //HashMap
+  CompletableFuture<Map<String, Department>> getDepartMap(Map<String, User> userMap);
 
   //enum
   CompletableFuture<Weeks> getDayOfWeek(Weeks day);

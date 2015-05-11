@@ -10,7 +10,9 @@ import io.vertx.core.Handler;
 import org.junit.Assert;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -53,6 +55,22 @@ public class SampleHandlerServiceImpl implements SampleHandlerSPI {
     departments.add(department);
 
     handler.handle(Future.succeededFuture(departments));
+  }
+
+  @Override
+  public void getDepartMap(Map<String, User> userMap, Handler<AsyncResult<Map<String, Department>>> handler) {
+    Assert.assertNotNull(userMap);
+    Assert.assertEquals(1, userMap.size());
+    User user = userMap.get("name");
+    Assert.assertEquals(1, user.getId());
+    Assert.assertEquals("name", user.getName());
+
+    Map<String, Department> departmentMap = new HashMap<>();
+    Department department = new Department();
+    department.setId(1);
+    department.setName("research");
+    departmentMap.put("research", department);
+    handler.handle(Future.succeededFuture(departmentMap));
   }
 
   @Override

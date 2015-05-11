@@ -7,7 +7,9 @@ import as.leap.rpc.example.spi.Weeks;
 import org.junit.Assert;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -50,6 +52,23 @@ public class SampleFutureServiceImpl implements SampleFutureSPI {
     departments.add(department);
 
     return CompletableFuture.completedFuture(departments);
+  }
+
+  @Override
+  public CompletableFuture<Map<String, Department>> getDepartMap(Map<String, User> userMap) {
+    Assert.assertNotNull(userMap);
+    Assert.assertEquals(1, userMap.size());
+    User user = userMap.get("name");
+    Assert.assertEquals(1, user.getId());
+    Assert.assertEquals("name", user.getName());
+
+    Map<String, Department> departmentMap = new HashMap<>();
+    Department department = new Department();
+    department.setId(1);
+    department.setName("research");
+    departmentMap.put("research", department);
+
+    return CompletableFuture.completedFuture(departmentMap);
   }
 
   @Override

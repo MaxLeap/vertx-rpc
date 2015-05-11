@@ -3,6 +3,7 @@ package as.leap.rpc.example.spi;
 import rx.Observable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -20,6 +21,9 @@ public interface SampleObserableSPI {
 
   //Collection
   Observable<List<Department>> getDepartList(List<User> users);
+
+  //HashMap
+  Observable<Map<String, Department>> getDepartMap(Map<String, User> userMap);
 
   //enum
   Observable<Weeks> getDayOfWeek(Weeks day);
