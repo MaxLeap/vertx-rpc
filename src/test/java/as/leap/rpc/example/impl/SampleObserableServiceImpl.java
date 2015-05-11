@@ -1,9 +1,6 @@
 package as.leap.rpc.example.impl;
 
-import as.leap.rpc.example.spi.Department;
-import as.leap.rpc.example.spi.SampleObserableSPI;
-import as.leap.rpc.example.spi.User;
-import as.leap.rpc.example.spi.Weeks;
+import as.leap.rpc.example.spi.*;
 import org.junit.Assert;
 import rx.Observable;
 
@@ -78,7 +75,7 @@ public class SampleObserableServiceImpl implements SampleObserableSPI {
 
   @Override
   public Observable<User> someException() {
-    return Observable.error(new IllegalArgumentException("illegalArguments"));
+    return Observable.error(new MyException("illegalArguments"));
   }
 
   @Override

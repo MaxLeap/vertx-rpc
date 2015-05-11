@@ -127,7 +127,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
       if (event.succeeded()) {
         fireNext(event.result());
       } else {
-        fireError(new VertxRPCException(event.cause()));
+        fireError(event.cause());
       }
     }
 
@@ -136,7 +136,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
 
     protected void fireError(Throwable t) {
-      if (observer != null) observer.onError(t.getCause());
+      if (observer != null) observer.onError(t);
     }
 
     @Override
@@ -214,10 +214,25 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.TIMEOUT && currentRetryTimes < retryTimes) {
           this.currentRetryTimes++;
           vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
+        } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
+          Exception t = getThrowable(throwable.getMessage());
+          responseHandler.handle(Future.failedFuture(t));
         } else {
           responseHandler.handle(Future.failedFuture(throwable));
         }
       }
+    }
+  }
+
+  private <EX extends Exception> EX getThrowable(String messExceptionString) {
+    String[] messages = messExceptionString.split("\\|", 2);
+    String exceptionClass = messages[0];
+    String message = messages[1];
+    try {
+      Class<EX> clazz = (Class<EX>) Class.forName(exceptionClass);
+      return clazz.getConstructor(String.class).newInstance(message);
+    } catch (Exception e) {
+      throw new VertxRPCException(e);
     }
   }
 

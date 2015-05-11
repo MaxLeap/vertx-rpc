@@ -1,9 +1,6 @@
 package as.leap.rpc.example.impl;
 
-import as.leap.rpc.example.spi.Department;
-import as.leap.rpc.example.spi.SampleFutureSPI;
-import as.leap.rpc.example.spi.User;
-import as.leap.rpc.example.spi.Weeks;
+import as.leap.rpc.example.spi.*;
 import org.junit.Assert;
 
 import java.util.ArrayList;
@@ -80,7 +77,7 @@ public class SampleFutureServiceImpl implements SampleFutureSPI {
   @Override
   public CompletableFuture<User> someException() {
     CompletableFuture<User> completableFuture = new CompletableFuture<>();
-    completableFuture.completeExceptionally(new IllegalArgumentException("illegalArguments"));
+    completableFuture.completeExceptionally(new MyException("illegalArguments"));
     return completableFuture;
   }
 

@@ -366,6 +366,7 @@ public class VertxRPCTest {
   }
 
   private void assertSix(Throwable ex, TestContext testContext, Async async) {
+    testContext.assertTrue(ex instanceof MyException);
     testContext.assertEquals("illegalArguments", ex.getMessage());
     async.complete();
   }

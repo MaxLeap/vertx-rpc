@@ -1,9 +1,6 @@
 package as.leap.rpc.example.impl;
 
-import as.leap.rpc.example.spi.Department;
-import as.leap.rpc.example.spi.SampleHandlerSPI;
-import as.leap.rpc.example.spi.User;
-import as.leap.rpc.example.spi.Weeks;
+import as.leap.rpc.example.spi.*;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -82,7 +79,7 @@ public class SampleHandlerServiceImpl implements SampleHandlerSPI {
 
   @Override
   public void someException(Handler<AsyncResult<User>> handler) {
-    handler.handle(Future.failedFuture(new IllegalArgumentException("illegalArguments")));
+    handler.handle(Future.failedFuture(new MyException("illegalArguments")));
   }
 
   @Override

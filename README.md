@@ -41,7 +41,7 @@ How to using
 		
     });
 
-full example cound be found [here]().
+full example could be found [here]().
 
 The more detail
 =========
