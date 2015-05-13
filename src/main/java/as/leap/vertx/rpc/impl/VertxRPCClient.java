@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -42,6 +43,8 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     this.timeout = options.getTimeout();
     this.serviceAddress = options.getBusAddress();
     this.service = options.getServiceClass();
+    checkBusAddress(serviceAddress);
+    Objects.requireNonNull(service, "service's interface can not be null.");
   }
 
   public T bindService() {
@@ -224,8 +227,8 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <EX extends Exception> EX getThrowable(String messExceptionString) {
-    String[] messages = messExceptionString.split("\\|", 2);
+  private <EX extends Exception> EX getThrowable(String exceptionString) {
+    String[] messages = exceptionString.split("\\|", 2);
     String exceptionClass = messages[0];
     String message = messages[1];
     try {

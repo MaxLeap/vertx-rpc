@@ -2,6 +2,7 @@ package as.leap.vertx.rpc.impl;
 
 
 import as.leap.vertx.rpc.RPCServer;
+import as.leap.vertx.rpc.VertxRPCException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
@@ -27,6 +28,9 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
 
   public VertxRPCServer(RPCServerOptions options) {
     super(options.getWireProtocol());
+    checkBusAddress(options.getBusAddress());
+    if (options.getServiceMapping().size() == 0)
+      throw new VertxRPCException("please add service implementation to RPCServerOptions.");
     this.serviceMapping = options.getServiceMapping();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
     this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());

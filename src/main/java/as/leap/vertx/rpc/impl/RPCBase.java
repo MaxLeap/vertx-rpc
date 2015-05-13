@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Created by stream.
@@ -22,6 +23,10 @@ abstract class RPCBase {
 
   public RPCBase(WireProtocol wireProtocol) {
     this.wireProtocol = wireProtocol;
+  }
+
+  void checkBusAddress(String address) {
+    Objects.requireNonNull(address, "service's event bus address can not be null.");
   }
 
   boolean isWrapType(Class clazz) {

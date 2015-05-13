@@ -2,7 +2,7 @@ Vertx-RPC
 =====
 
 Wrap eventBus of vert.x 3 as trasport layer for RPC invoking, and arguments of method could be POJO or primitive.
-You just have to define `interface` of service, and then implements it with service end.
+You just have to define `interface` of service, and then implements it with server end.
 Expose interface as client for invoker, say separation of interface and implementation.
 
 How to using
@@ -48,12 +48,12 @@ myService.hello("world", result -> {
 });
 ```
 	
-full example could be found [here]().
+full example could be found [here](https://github.com/stream1984/vertx-rpc-example).
 
 The more detail
 =========
 
-We only dependency `Protostuff` as Codec, default we using protobuf, you can also specify JSON as wire protocol both client and server.
+We only dependency `Protostuff` as Codec, default we using protobuf, you can also specify JSON as wire protocol both on client and server.
 
 ```java
     new RPCServerOptions(vertx).setWireProtocol(WireProtocol.JSON))
