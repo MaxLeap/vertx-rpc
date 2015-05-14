@@ -1,9 +1,16 @@
 package as.leap.vertx.rpc;
 
 /**
+ * RPC Client
  *
+ * Created by stream.
  */
 public interface RPCClient<T> {
 
-   T bindService();
+  /**
+   * bind the interface of service
+   *
+   * @return interface of SPI
+   */
+  T bindService();
 }

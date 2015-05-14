@@ -1,7 +1,7 @@
 Vertx-RPC
 =====
 
-Wrap eventBus of vert.x 3 as trasport layer for RPC invoking, and arguments of method could be POJO or primitive.
+Wrap eventBus of vert.x 3 as transport layer for RPC invoking, and arguments of method could be POJO or primitive.
 You just have to define `interface` of service, and then implements it with server end.
 Expose interface as client for invoker, say separation of interface and implementation.
 
