@@ -16,6 +16,7 @@ import rx.Observer;
 import rx.Subscriber;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -227,14 +228,16 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <EX extends Exception> EX getThrowable(String exceptionString) {
-    String[] messages = exceptionString.split("\\|", 2);
+  private <EX extends Exception> EX getThrowable(String messExceptionString) {
+    String[] messages = messExceptionString.split("\\|", 2);
     String exceptionClass = messages[0];
     String message = messages[1];
     try {
       Class<EX> clazz = (Class<EX>) Class.forName(exceptionClass);
       return clazz.getConstructor(String.class).newInstance(message);
-    } catch (Exception e) {
+    } catch (NoSuchMethodException | ClassNotFoundException e) {
+      return (EX) new VertxRPCException("Invoke method " + message + " throw exception " + exceptionClass);
+    } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new VertxRPCException(e);
     }
   }
