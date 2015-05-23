@@ -128,7 +128,8 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
 
   private void replyFail(Throwable ex, Message<byte[]> message) {
     log.error(ex.getMessage(), ex);
-    message.fail(500, ex.getClass().getName() + "|" + (ex.getMessage() == null ? ex.getStackTrace()[0].getMethodName() : ex.getMessage()));
+    Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
+    message.fail(500, realEx.getClass().getName() + "|" + (realEx.getMessage() == null ? realEx.getStackTrace()[0].getMethodName() : realEx.getMessage()));
   }
 
   @Override
