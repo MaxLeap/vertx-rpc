@@ -5,6 +5,15 @@ Wrap eventBus of vert.x 3 as transport layer for RPC invoking, and arguments of 
 You just have to define `interface` of service, and then implements it with server end.
 Expose interface as client for invoker, say separation of interface and implementation.
 
+
+```xml
+<dependency>
+	<groupId>as.leap</groupId>
+	<artifactId>vertx-rpc</artifactId>
+	<version>RC1</version>
+</dependency>
+```
+
 How to using
 =======
 
