@@ -1,6 +1,7 @@
 package as.leap.vertx.rpc.impl;
 
 
+import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 
@@ -13,10 +14,17 @@ public class RPCClientOptions<T> {
   private String busAddress;
   private Class<T> serviceClass;
   private long timeout = 10 * 1000L;
+  private RPCHook RPCHook = as.leap.vertx.rpc.RPCHook.emptyRPCHook();
   private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
+
 
   public RPCClientOptions(Vertx vertx) {
     this.vertx = vertx;
+  }
+
+  public RPCClientOptions(Vertx vertx, RPCHook RPCHook) {
+    this.vertx = vertx;
+    this.RPCHook = RPCHook;
   }
 
   public RPCClientOptions(Vertx vertx, RPCClientOptions<T> other) {
@@ -39,6 +47,15 @@ public class RPCClientOptions<T> {
 
   public RPCClientOptions<T> setServiceClass(Class<T> serviceClass) {
     this.serviceClass = serviceClass;
+    return this;
+  }
+
+  public RPCHook getRPCHook() {
+    return RPCHook;
+  }
+
+  public RPCClientOptions<T> setRPCHook(RPCHook RPCHook) {
+    this.RPCHook = RPCHook;
     return this;
   }
 

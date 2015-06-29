@@ -5,27 +5,28 @@ import as.leap.rpc.example.impl.SampleHandlerServiceImpl;
 import as.leap.rpc.example.impl.SampleObserableServiceImpl;
 import as.leap.rpc.example.impl.SampleTimeoutRetryServiceImpl;
 import as.leap.rpc.example.spi.*;
+import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.WireProtocol;
 import as.leap.vertx.rpc.impl.RPCClientOptions;
 import as.leap.vertx.rpc.impl.RPCServerOptions;
 import as.leap.vertx.rpc.impl.VertxRPCClient;
 import as.leap.vertx.rpc.impl.VertxRPCServer;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.VertxFactoryImpl;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RunWith(io.vertx.ext.unit.junit.VertxUnitRunner.class)
 public class VertxRPCTest {
-
+  private static final Logger logger = LoggerFactory.getLogger(VertxRPCTest.class);
   private static SampleHandlerSPI sampleHandlerSPI;
   private static SampleObserableSPI exampleObsSPI;
   private static SampleFutureSPI sampleFutureSPI;
@@ -41,9 +42,11 @@ public class VertxRPCTest {
 
     //handler
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
+        .setRPCHook(new ServerServiceHook())
         .addService(new SampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
 
     RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx)
+        .setRPCHook(new ClientServiceHook())
         .setBusAddress(busAddressHandler).setServiceClass(SampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
     sampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
 
@@ -382,6 +385,49 @@ public class VertxRPCTest {
     testContext.assertEquals("research", departmentMap.get("research").getName());
     async.complete();
   }
+
+  private static class ClientServiceHook implements RPCHook {
+    @Override
+    public void beforeHandler(String interfaceName, String methodName, Object[] args, MultiMap header) {
+      logger.info("client hook before.");
+      header.add("reqId", UUID.randomUUID().toString());
+      logger.info(String.format("interfaceName:%s, methodName:%s, objects:%s, header:%s", interfaceName, methodName, Arrays.toString(args), header));
+    }
+
+    @Override
+    public void afterHandler(Object response, MultiMap header) {
+      logger.info("client hook after.");
+      logger.info(String.format("result: %s, header:%s", response, header));
+    }
+
+    @Override
+    public void afterHandler(Throwable throwable, MultiMap header) {
+      logger.info("client hook after.");
+      logger.info(String.format("exception: %s, header:%s", throwable.getMessage(), header));
+    }
+  }
+
+  private static class ServerServiceHook implements RPCHook {
+    @Override
+    public void beforeHandler(String interfaceName, String methodName, Object[] args, MultiMap header) {
+      logger.info("server hook before.");
+      logger.info(String.format("interfaceName:%s, methodName:%s, objects:%s, header:%s", interfaceName, methodName, Arrays.toString(args), header));
+    }
+
+    @Override
+    public void afterHandler(Object response, MultiMap header) {
+      logger.info("server hook after.");
+      logger.info(String.format("result: %s, header:%s", response, header));
+    }
+
+    @Override
+    public void afterHandler(Throwable throwable, MultiMap header) {
+      logger.info("server hook after.");
+      logger.info(String.format("exception: %s, header:%s", throwable.getMessage(), header));
+    }
+  }
+
+
 }
 
 

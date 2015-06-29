@@ -2,15 +2,14 @@ package as.leap.vertx.rpc.impl;
 
 import as.leap.vertx.rpc.RPCClient;
 import as.leap.vertx.rpc.RequestProp;
+import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.VertxRPCException;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
@@ -95,16 +94,16 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         return Observable.create(new ReactiveHandler<Object>() {
           @Override
           void execute() throws Exception {
-            invoke(request, requestProperties, callbackType, this);
+            invoke(request, args, requestProperties, callbackType, this);
           }
         });
       case ASYNC_HANDLER:
         Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
-        invoke(request, requestProperties, callbackType, handler);
+        invoke(request, args, requestProperties, callbackType, handler);
         return null;
       case COMPLETABLE_FUTURE:
         CompletableFutureHandler<Object> futureHandler = new CompletableFutureHandler<>();
-        invoke(request, requestProperties, callbackType, futureHandler);
+        invoke(request, args, requestProperties, callbackType, futureHandler);
         return futureHandler.future;
       default:
         throw new VertxRPCException("unKnow the type of callback");
@@ -169,14 +168,22 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <E> void invoke(RPCRequest request, RequestProperties requestProp, CallbackType callBackType, Handler<AsyncResult<E>> responseHandler) throws Exception {
-    DeliveryOptions deliveryOptions = new DeliveryOptions();
+  private <E> void invoke(RPCRequest request, Object[] args, RequestProperties requestProp, CallbackType callBackType, Handler<AsyncResult<E>> responseHandler) throws Exception {
+    final DeliveryOptions deliveryOptions = new DeliveryOptions();
     deliveryOptions.setSendTimeout(requestProp.getTimeout());
-    deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
-
+    deliveryOptions.setHeaders(new CaseInsensitiveHeaders());
+    //
     byte[] requestBytes = asBytes(request);
-    ReplyHandler<E> replyHandler = new ReplyHandler<>(requestProp.getRetryTimes(), 0, requestBytes, deliveryOptions, responseHandler);
-    vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler);
+
+    //execute hook before send message
+    vertx.executeBlocking(future -> {
+      options.getRPCHook().beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
+      future.complete();
+    }, false, event -> {
+      deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
+      ReplyHandler<E> replyHandler = new ReplyHandler<>(requestProp.getRetryTimes(), 0, requestBytes, deliveryOptions, responseHandler);
+      vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler);
+    });
   }
 
   /**
@@ -201,6 +208,10 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
     @Override
     public void handle(AsyncResult<Message<byte[]>> message) {
+      //get hook and remove key of callback type.
+      RPCHook RPCHook = options.getRPCHook();
+      deliveryOptions.getHeaders().remove(CALLBACK_TYPE);
+
       if (message.succeeded()) {
         try {
           RPCResponse response = asObject(message.result().body(), RPCResponse.class);
@@ -208,7 +219,12 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           byte[] responseBytes = response.getResponse();
           Object result = asObject(responseBytes, (Class<E>) Class.forName(responseTypeName));
           E realResult = (E) (result instanceof WrapperType ? ((WrapperType) result).getValue() : result);
+          //execute hook after handler message
           responseHandler.handle(Future.succeededFuture(realResult));
+          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+            RPCHook.afterHandler(realResult, deliveryOptions.getHeaders());
+            future.complete();
+          }, false, null));
         } catch (Exception e) {
           responseHandler.handle(Future.failedFuture(new VertxRPCException(e)));
         }
@@ -221,8 +237,16 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
           Exception t = getThrowable(throwable.getMessage());
           responseHandler.handle(Future.failedFuture(t));
+          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+            RPCHook.afterHandler(t, deliveryOptions.getHeaders());
+            future.complete();
+          }, false, null));
         } else {
           responseHandler.handle(Future.failedFuture(throwable));
+          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+            RPCHook.afterHandler(throwable, deliveryOptions.getHeaders());
+            future.complete();
+          }, false, null));
         }
       }
     }

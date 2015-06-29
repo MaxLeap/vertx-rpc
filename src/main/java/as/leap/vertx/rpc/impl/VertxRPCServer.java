@@ -5,10 +5,11 @@ import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.impl.LoggerFactory;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.LocalMap;
 import rx.Observable;
 
@@ -25,10 +26,14 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
 
   private final LocalMap<String, SharedWrapper> serviceMapping;
   private final MessageConsumer<byte[]> consumer;
+  private RPCServerOptions options;
+  private Vertx vertx;
 
   public VertxRPCServer(RPCServerOptions options) {
     super(options.getWireProtocol());
+    vertx = options.getVertx();
     checkBusAddress(options.getBusAddress());
+    this.options = options;
     if (options.getServiceMapping().size() == 0)
       throw new VertxRPCException("please add service implementation to RPCServerOptions.");
     this.serviceMapping = options.getServiceMapping();
@@ -48,7 +53,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
     });
   }
 
-  private <T> void call(RPCRequest request, Message<byte[]> message) {
+  private void call(RPCRequest request, Message<byte[]> message) {
     try {
       Object service = serviceMapping.get(request.getServiceName()).getValue();
       Class<?>[] argClasses = {};
@@ -78,7 +83,22 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
         }
       }
 
-      switch (CallbackType.valueOf(message.headers().get(CALLBACK_TYPE))) {
+      CallbackType callbackType = CallbackType.valueOf(message.headers().get(CALLBACK_TYPE));
+      final Object[] finalArgs = args;
+      final Class<?>[] finalArgClasses = argClasses;
+      //hook
+      vertx.executeBlocking(future -> {
+        options.getRPCHook().beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+        future.complete();
+      }, false, event -> executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs));
+    } catch (Exception e) {
+      replyFail(e, message);
+    }
+  }
+
+  private <T> void executeInvoke(CallbackType callbackType, RPCRequest request, Message<byte[]> message, Object service, Class<?>[] argClasses, Object[] args) {
+    try {
+      switch (callbackType) {
         case REACTIVE:
           Observable<?> observable = (Observable) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
           observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
@@ -107,29 +127,42 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   }
 
   private <T> void replySuccess(T result, Message<byte[]> message) {
-    String resultClassName;
-    byte[] resultBytes = {};
-    try {
-      if (Optional.ofNullable(result).isPresent()) {
-        Class<?> resultClass = result.getClass();
-        resultClassName = isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
-        resultBytes = asBytes(result);
-      } else {
-        // result is null, so we have wrap it.
-        resultClassName = WrapperType.class.getName();
+    //hook
+    vertx.executeBlocking(future -> {
+      options.getRPCHook().afterHandler(result, message.headers());
+      future.complete();
+    }, false, event -> {
+      String resultClassName;
+      byte[] resultBytes = {};
+      try {
+        if (Optional.ofNullable(result).isPresent()) {
+          Class<?> resultClass = result.getClass();
+          resultClassName = isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
+          resultBytes = asBytes(result);
+        } else {
+          // result is null, so we have wrap it.
+          resultClassName = WrapperType.class.getName();
+        }
+        RPCResponse response = new RPCResponse(resultClassName, resultBytes);
+        byte[] responseBytes = asBytes(response);
+        message.reply(responseBytes);
+      } catch (Exception e) {
+        replyFail(e, message);
       }
-      RPCResponse response = new RPCResponse(resultClassName, resultBytes);
-      byte[] responseBytes = asBytes(response);
-      message.reply(responseBytes);
-    } catch (Exception e) {
-      replyFail(e, message);
-    }
+    });
   }
 
   private void replyFail(Throwable ex, Message<byte[]> message) {
-    log.error(ex.getMessage(), ex);
-    Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
-    message.fail(500, realEx.getClass().getName() + "|" + (realEx.getMessage() == null ? realEx.getStackTrace()[0].getMethodName() : realEx.getMessage()));
+    //hook
+    vertx.executeBlocking(future -> {
+          log.error(ex.getMessage(), ex);
+          options.getRPCHook().afterHandler(ex, message.headers());
+          future.complete();
+        }, false,
+        event -> {
+          Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
+          message.fail(500, realEx.getClass().getName() + "|" + (realEx.getMessage() == null ? realEx.getStackTrace()[0].getMethodName() : realEx.getMessage()));
+        });
   }
 
   @Override

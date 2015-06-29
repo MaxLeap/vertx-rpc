@@ -25,6 +25,7 @@ public class SampleHandlerServiceImpl implements SampleHandlerSPI {
     Department department = new Department();
     department.setId(1);
     department.setName("research");
+
     handler.handle(Future.succeededFuture(department));
   }
 
