@@ -42,11 +42,11 @@ public class VertxRPCTest {
 
     //handler
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
-        .setRPCHook(new ServerServiceHook())
+        .setRpcHook(new ServerServiceHook())
         .addService(new SampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
 
     RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx)
-        .setRPCHook(new ClientServiceHook())
+        .setRpcHook(new ClientServiceHook())
         .setBusAddress(busAddressHandler).setServiceClass(SampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
     sampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
 

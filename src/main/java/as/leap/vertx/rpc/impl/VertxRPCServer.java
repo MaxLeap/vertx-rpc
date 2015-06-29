@@ -88,7 +88,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       final Class<?>[] finalArgClasses = argClasses;
       //hook
       vertx.executeBlocking(future -> {
-        options.getRPCHook().beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+        options.getRpcHook().beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
         future.complete();
       }, false, event -> executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs));
     } catch (Exception e) {
@@ -129,7 +129,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private <T> void replySuccess(T result, Message<byte[]> message) {
     //hook
     vertx.executeBlocking(future -> {
-      options.getRPCHook().afterHandler(result, message.headers());
+      options.getRpcHook().afterHandler(result, message.headers());
       future.complete();
     }, false, event -> {
       String resultClassName;
@@ -156,7 +156,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
     //hook
     vertx.executeBlocking(future -> {
           log.error(ex.getMessage(), ex);
-          options.getRPCHook().afterHandler(ex, message.headers());
+          options.getRpcHook().afterHandler(ex, message.headers());
           future.complete();
         }, false,
         event -> {

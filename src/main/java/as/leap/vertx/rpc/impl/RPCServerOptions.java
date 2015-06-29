@@ -6,6 +6,8 @@ import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.LocalMap;
 
+import static as.leap.vertx.rpc.RPCHook.emptyRPCHook;
+
 /**
  *
  */
@@ -15,7 +17,7 @@ public class RPCServerOptions {
   private String busAddress;
   private int maxBufferedMessages;
   private static final String SERVICE_MAP_NAME = "VERTX_RPC_SERVICE";
-  private RPCHook RPCHook = as.leap.vertx.rpc.RPCHook.emptyRPCHook();
+  private RPCHook rpcHook = emptyRPCHook();
   private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
   LocalMap<String, SharedWrapper> serviceMapping;
 
@@ -28,6 +30,7 @@ public class RPCServerOptions {
     this.vertx = vertx;
     this.busAddress = other.getBusAddress();
     this.wireProtocol = other.getWireProtocol();
+    this.rpcHook = other.getRpcHook();
     this.serviceMapping = vertx.sharedData().getLocalMap(SERVICE_MAP_NAME);
   }
 
@@ -58,12 +61,12 @@ public class RPCServerOptions {
     return this;
   }
 
-  public RPCHook getRPCHook() {
-    return RPCHook;
+  public RPCHook getRpcHook() {
+    return rpcHook;
   }
 
-  public RPCServerOptions setRPCHook(RPCHook RPCHook) {
-    this.RPCHook = RPCHook;
+  public RPCServerOptions setRpcHook(RPCHook rpcHook) {
+    this.rpcHook = rpcHook;
     return this;
   }
 

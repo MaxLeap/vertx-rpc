@@ -177,7 +177,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
     //execute hook before send message
     vertx.executeBlocking(future -> {
-      options.getRPCHook().beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
+      options.getRpcHook().beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
       future.complete();
     }, false, event -> {
       deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
@@ -209,7 +209,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     @Override
     public void handle(AsyncResult<Message<byte[]>> message) {
       //get hook and remove key of callback type.
-      RPCHook RPCHook = options.getRPCHook();
+      RPCHook RPCHook = options.getRpcHook();
       deliveryOptions.getHeaders().remove(CALLBACK_TYPE);
 
       if (message.succeeded()) {

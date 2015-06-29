@@ -5,6 +5,8 @@ import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 
+import static as.leap.vertx.rpc.RPCHook.emptyRPCHook;
+
 /**
  * Created by stream.
  */
@@ -14,7 +16,7 @@ public class RPCClientOptions<T> {
   private String busAddress;
   private Class<T> serviceClass;
   private long timeout = 10 * 1000L;
-  private RPCHook RPCHook = as.leap.vertx.rpc.RPCHook.emptyRPCHook();
+  private RPCHook rpcHook = emptyRPCHook();
   private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
 
 
@@ -22,9 +24,9 @@ public class RPCClientOptions<T> {
     this.vertx = vertx;
   }
 
-  public RPCClientOptions(Vertx vertx, RPCHook RPCHook) {
+  public RPCClientOptions(Vertx vertx, RPCHook rpcHook) {
     this.vertx = vertx;
-    this.RPCHook = RPCHook;
+    this.rpcHook = rpcHook;
   }
 
   public RPCClientOptions(Vertx vertx, RPCClientOptions<T> other) {
@@ -33,6 +35,7 @@ public class RPCClientOptions<T> {
     this.timeout = other.getTimeout();
     this.wireProtocol = other.getWireProtocol();
     this.serviceClass = other.getServiceClass();
+    this.rpcHook = other.getRpcHook();
   }
 
   public RPCClientOptions<T> setBusAddress(String busAddress) {
@@ -50,12 +53,12 @@ public class RPCClientOptions<T> {
     return this;
   }
 
-  public RPCHook getRPCHook() {
-    return RPCHook;
+  public RPCHook getRpcHook() {
+    return rpcHook;
   }
 
-  public RPCClientOptions<T> setRPCHook(RPCHook RPCHook) {
-    this.RPCHook = RPCHook;
+  public RPCClientOptions<T> setRpcHook(RPCHook rpcHook) {
+    this.rpcHook = rpcHook;
     return this;
   }
 
