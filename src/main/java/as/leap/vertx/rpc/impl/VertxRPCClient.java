@@ -213,6 +213,8 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     public void handle(AsyncResult<Message<byte[]>> message) {
       //get hook and remove key of callback type.
       RPCHook RPCHook = options.getRpcHook();
+      //for retry
+      final String callBackType = deliveryOptions.getHeaders().get(CALLBACK_TYPE);
       deliveryOptions.getHeaders().remove(CALLBACK_TYPE);
 
       if (message.succeeded()) {
@@ -236,6 +238,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         Throwable throwable = message.cause();
         if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.TIMEOUT && currentRetryTimes < retryTimes) {
           this.currentRetryTimes++;
+          deliveryOptions.addHeader(CALLBACK_TYPE, callBackType);
           vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
         } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
           Exception t = getThrowable(throwable.getMessage());
