@@ -18,6 +18,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -386,11 +387,14 @@ public class VertxRPCTest {
     async.complete();
   }
 
+  private static String reqId = UUID.randomUUID().toString();
+
   private static class ClientServiceHook implements RPCHook {
     @Override
     public void beforeHandler(String interfaceName, String methodName, Object[] args, MultiMap header) {
       logger.info("client hook before.");
-      header.add("reqId", UUID.randomUUID().toString());
+      header.add("reqId", reqId);
+      header.add("time", String.valueOf(System.currentTimeMillis()));
       logger.info(String.format("interfaceName:%s, methodName:%s, objects:%s, header:%s", interfaceName, methodName, Arrays.toString(args), header));
     }
 
@@ -398,12 +402,16 @@ public class VertxRPCTest {
     public void afterHandler(Object response, MultiMap header) {
       logger.info("client hook after.");
       logger.info(String.format("result: %s, header:%s", response, header));
+      Assert.assertEquals(reqId, header.get("reqId"));
+      Assert.assertTrue(System.currentTimeMillis() > Long.valueOf(header.get("time")));
     }
 
     @Override
     public void afterHandler(Throwable throwable, MultiMap header) {
       logger.info("client hook after.");
       logger.info(String.format("exception: %s, header:%s", throwable.getMessage(), header));
+      Assert.assertEquals(reqId, header.get("reqId"));
+      Assert.assertTrue(System.currentTimeMillis() > Long.valueOf(header.get("time")));
     }
   }
 
@@ -412,18 +420,26 @@ public class VertxRPCTest {
     public void beforeHandler(String interfaceName, String methodName, Object[] args, MultiMap header) {
       logger.info("server hook before.");
       logger.info(String.format("interfaceName:%s, methodName:%s, objects:%s, header:%s", interfaceName, methodName, Arrays.toString(args), header));
+      Assert.assertEquals(reqId, header.get("reqId"));
+      Assert.assertTrue(System.currentTimeMillis() > Long.valueOf(header.get("time")));
+      //change time
+      header.add("time", String.valueOf(System.currentTimeMillis()));
     }
 
     @Override
     public void afterHandler(Object response, MultiMap header) {
       logger.info("server hook after.");
       logger.info(String.format("result: %s, header:%s", response, header));
+      Assert.assertEquals(reqId, header.get("reqId"));
+      Assert.assertTrue(System.currentTimeMillis() > Long.valueOf(header.get("time")));
     }
 
     @Override
     public void afterHandler(Throwable throwable, MultiMap header) {
       logger.info("server hook after.");
       logger.info(String.format("exception: %s, header:%s", throwable.getMessage(), header));
+      Assert.assertEquals(reqId, header.get("reqId"));
+      Assert.assertTrue(System.currentTimeMillis() > Long.valueOf(header.get("time")));
     }
   }
 
