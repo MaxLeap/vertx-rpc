@@ -59,6 +59,19 @@ myService.hello("world", result -> {
 	
 full example could be found [here](https://github.com/stream1984/vertx-rpc-example).
 
+Hook method
+=========
+you can also hook your method either client or server or both.  
+just implement interface `RPCHook` and then put it into Option.  
+
+```java
+RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx).setRpcHook(new ClientServiceHook())
+```
+
+hook method running in a worker thread, so you can running with block method, we using it add `reqId` for identity method in invoking chain, and could also  
+make metric for performance monitor and logs. 
+
+
 The more detail
 =========
 
