@@ -4,7 +4,7 @@
 
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
-  <version>3.0.1-SNAPSHOT</version>
+  <version>3.0.0</version>
 
   <properties>
     <vertx-stack.version>3.0.0</vertx-stack.version>
@@ -93,6 +93,14 @@
     <groupId>io.vertx</groupId>
     <artifactId>vertx-core</artifactId>
     <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-core</artifactId>
+    <version>0.7.2</version>
+    <classifier>jdk8</classifier>
+    <scope>provided</scope>
+    <optional>true</optional>
   </dependency>
   <dependency>
     <groupId>io.reactivex</groupId>

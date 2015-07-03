@@ -1,9 +1,6 @@
 package as.leap.rpc.example;
 
-import as.leap.rpc.example.impl.SampleFutureServiceImpl;
-import as.leap.rpc.example.impl.SampleHandlerServiceImpl;
-import as.leap.rpc.example.impl.SampleObserableServiceImpl;
-import as.leap.rpc.example.impl.SampleTimeoutRetryServiceImpl;
+import as.leap.rpc.example.impl.*;
 import as.leap.rpc.example.spi.*;
 import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.WireProtocol;
@@ -32,7 +29,7 @@ public class VertxRPCTest {
   private static SampleObserableSPI exampleObsSPI;
   private static SampleFutureSPI sampleFutureSPI;
   private static SampleTimeoutRetrySPI sampleTimeoutRetrySPI;
-
+  private static SampleSyncSPI sampleSyncSPISync;
   @BeforeClass
   public static void beforeClass() {
     Vertx vertx = new VertxFactoryImpl().vertx();
@@ -66,6 +63,12 @@ public class VertxRPCTest {
     RPCClientOptions<SampleFutureSPI> rpcClientFutureOptions = new RPCClientOptions<SampleFutureSPI>(vertx)
         .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class);
     sampleFutureSPI = new VertxRPCClient<>(rpcClientFutureOptions).bindService();
+
+    //sync
+    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress("syncc").addService(new SampleSyncSPIImpl()));
+    RPCClientOptions<SampleSyncSPI> rpcClientSyncOptions = new RPCClientOptions<SampleSyncSPI>(vertx)
+        .setBusAddress("syncc").setServiceClass(SampleSyncSPI.class);
+    sampleSyncSPISync = new VertxRPCClient<>(rpcClientSyncOptions).bindService();
 
     //Timeout and retry
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressForTimeout).addService(new SampleTimeoutRetryServiceImpl()));
@@ -339,6 +342,73 @@ public class VertxRPCTest {
       if (throwable != null) testContext.fail(throwable);
       assertEight(result, testContext, async);
     });
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+
+  @Test
+  public void syncOne(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    try {
+      Department department = sampleSyncSPISync.getDepartment(user);
+      assertOne(department, testContext, async);
+    } catch (Exception e) {
+      testContext.fail(e);
+    }
+  }
+
+  @Test
+  public void syncTwo(TestContext testContext) {
+    Async async = testContext.async();
+    assertTwo(sampleSyncSPISync.getDepartment(1, 2), testContext, async);
+  }
+
+  @Test
+  public void syncThree(TestContext testContext) {
+    Async async = testContext.async();
+    assertThree(sampleSyncSPISync.getBytes("name".getBytes()), testContext, async);
+  }
+
+  @Test
+  public void syncFour(TestContext testContext) {
+    Async async = testContext.async();
+    List<User> users = new ArrayList<>();
+    User user = new User();
+    user.setId(1);
+    users.add(user);
+    assertFour(sampleSyncSPISync.getDepartList(users), testContext, async);
+  }
+
+  @Test
+  public void syncFive(TestContext testContext) {
+    Async async = testContext.async();
+    assertFive(sampleSyncSPISync.getDayOfWeek(Weeks.SUNDAY), testContext, async);
+  }
+
+  @Test
+  public void syncSix(TestContext testContext) {
+    Async async = testContext.async();
+    try {
+      sampleSyncSPISync.someException();
+    } catch (MyException e) {
+      assertSix(e, testContext, async);
+    }
+  }
+
+  @Test
+  public void syncSeven(TestContext testContext) {
+    Async async = testContext.async();
+    assertSeven(sampleSyncSPISync.nullInvoke(null), testContext, async);
+  }
+
+  @Test
+  public void syncEight(TestContext testContext) {
+    Async async = testContext.async();
+    User user = new User(1, "name");
+    Map<String, User> userMap = new HashMap<>();
+    userMap.put("name", user);
+    assertEight(sampleSyncSPISync.getDepartMap(userMap), testContext, async);
   }
 
   //--------------------------------------------------------------------------------------------------------------------

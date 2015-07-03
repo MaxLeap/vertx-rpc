@@ -3,6 +3,8 @@ package as.leap.vertx.rpc.impl;
 
 import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -13,6 +15,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.LocalMap;
 import rx.Observable;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -120,9 +123,48 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
             else replySuccess(result, message);
           });
           break;
+        case SYNC:
+          try {
+            MyFiber myFiber = new MyFiber(service, request.getMethodName(), argClasses, args, message);
+            Object result = myFiber.run();
+            if (!myFiber.isException) replySuccess(result, message);
+          } catch (SuspendExecution | InterruptedException e) {
+            log.error(e);
+          }
+          break;
       }
     } catch (Exception e) {
       replyFail(e, message);
+    }
+  }
+
+  private class MyFiber extends Fiber {
+    private Object service;
+    private String methodName;
+    private Class[] argClasses;
+    private Object[] args;
+    private Message<byte[]> message;
+    private boolean isException;
+
+    public MyFiber(Object service, String methodName, Class[] argClasses, Object[] args, Message<byte[]> message) {
+      this.service = service;
+      this.methodName = methodName;
+      this.argClasses = argClasses;
+      this.args = args;
+      this.message = message;
+    }
+
+    @Override
+    protected Object run() throws SuspendExecution, InterruptedException {
+      try {
+        return service.getClass().getMethod(methodName, argClasses).invoke(service, args);
+      } catch (IllegalAccessException | NoSuchMethodException e) {
+        log.error(e);
+      } catch (InvocationTargetException targetException) {
+        isException = true;
+        replyFail(targetException.getTargetException(), message);
+      }
+      return null;
     }
   }
 

@@ -89,6 +89,6 @@ abstract class RPCBase {
   }
 
   protected enum CallbackType {
-    ASYNC_HANDLER, REACTIVE, COMPLETABLE_FUTURE
+    ASYNC_HANDLER, REACTIVE, COMPLETABLE_FUTURE, SYNC
   }
 }
