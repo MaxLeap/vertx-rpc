@@ -23,13 +23,13 @@ import org.junit.runner.RunWith;
 import java.util.*;
 
 @RunWith(io.vertx.ext.unit.junit.VertxUnitRunner.class)
-public class VertxRPCTest {
-  private static final Logger logger = LoggerFactory.getLogger(VertxRPCTest.class);
+public class VertxRPCAsyncTest extends VertxRPCBase {
+  private static final Logger logger = LoggerFactory.getLogger(VertxRPCAsyncTest.class);
   private static SampleHandlerSPI sampleHandlerSPI;
   private static SampleObserableSPI exampleObsSPI;
   private static SampleFutureSPI sampleFutureSPI;
   private static SampleTimeoutRetrySPI sampleTimeoutRetrySPI;
-  private static SampleSyncSPI sampleSyncSPISync;
+
   @BeforeClass
   public static void beforeClass() {
     Vertx vertx = new VertxFactoryImpl().vertx();
@@ -64,11 +64,7 @@ public class VertxRPCTest {
         .setBusAddress(busAddressFuture).setServiceClass(SampleFutureSPI.class);
     sampleFutureSPI = new VertxRPCClient<>(rpcClientFutureOptions).bindService();
 
-    //sync
-    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress("syncc").addService(new SampleSyncSPIImpl()));
-    RPCClientOptions<SampleSyncSPI> rpcClientSyncOptions = new RPCClientOptions<SampleSyncSPI>(vertx)
-        .setBusAddress("syncc").setServiceClass(SampleSyncSPI.class);
-    sampleSyncSPISync = new VertxRPCClient<>(rpcClientSyncOptions).bindService();
+
 
     //Timeout and retry
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressForTimeout).addService(new SampleTimeoutRetryServiceImpl()));
@@ -346,116 +342,6 @@ public class VertxRPCTest {
 
   //--------------------------------------------------------------------------------------------------------------------
 
-  @Test
-  public void syncOne(TestContext testContext) {
-    Async async = testContext.async();
-    User user = new User(1, "name");
-    try {
-      Department department = sampleSyncSPISync.getDepartment(user);
-      assertOne(department, testContext, async);
-    } catch (Exception e) {
-      testContext.fail(e);
-    }
-  }
-
-  @Test
-  public void syncTwo(TestContext testContext) {
-    Async async = testContext.async();
-    assertTwo(sampleSyncSPISync.getDepartment(1, 2), testContext, async);
-  }
-
-  @Test
-  public void syncThree(TestContext testContext) {
-    Async async = testContext.async();
-    assertThree(sampleSyncSPISync.getBytes("name".getBytes()), testContext, async);
-  }
-
-  @Test
-  public void syncFour(TestContext testContext) {
-    Async async = testContext.async();
-    List<User> users = new ArrayList<>();
-    User user = new User();
-    user.setId(1);
-    users.add(user);
-    assertFour(sampleSyncSPISync.getDepartList(users), testContext, async);
-  }
-
-  @Test
-  public void syncFive(TestContext testContext) {
-    Async async = testContext.async();
-    assertFive(sampleSyncSPISync.getDayOfWeek(Weeks.SUNDAY), testContext, async);
-  }
-
-  @Test
-  public void syncSix(TestContext testContext) {
-    Async async = testContext.async();
-    try {
-      sampleSyncSPISync.someException();
-    } catch (MyException e) {
-      assertSix(e, testContext, async);
-    }
-  }
-
-  @Test
-  public void syncSeven(TestContext testContext) {
-    Async async = testContext.async();
-    assertSeven(sampleSyncSPISync.nullInvoke(null), testContext, async);
-  }
-
-  @Test
-  public void syncEight(TestContext testContext) {
-    Async async = testContext.async();
-    User user = new User(1, "name");
-    Map<String, User> userMap = new HashMap<>();
-    userMap.put("name", user);
-    assertEight(sampleSyncSPISync.getDepartMap(userMap), testContext, async);
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-
-  private void assertOne(Department department, TestContext testContext, Async async) {
-    testContext.assertEquals(1, department.getId());
-    testContext.assertEquals("research", department.getName());
-    async.complete();
-  }
-
-  private void assertTwo(Integer departmentId, TestContext testContext, Async async) {
-    testContext.assertEquals(1, departmentId);
-    async.complete();
-  }
-
-  private void assertThree(byte[] result, TestContext testContext, Async async) {
-    testContext.assertEquals("name", new String(result));
-    async.complete();
-  }
-
-  private void assertFour(List<Department> result, TestContext testContext, Async async) {
-    testContext.assertEquals(1, result.get(0).getId());
-    async.complete();
-  }
-
-  private void assertFive(Weeks day, TestContext testContext, Async async) {
-    testContext.assertEquals(Weeks.FRIDAY, day);
-    async.complete();
-  }
-
-  private void assertSix(Throwable ex, TestContext testContext, Async async) {
-    testContext.assertTrue(ex instanceof MyException);
-    testContext.assertEquals("illegalArguments", ex.getMessage());
-    async.complete();
-  }
-
-  private void assertSeven(User user, TestContext testContext, Async async) {
-    testContext.assertNull(user);
-    async.complete();
-  }
-
-  private void assertEight(Map<String, Department> departmentMap, TestContext testContext, Async async) {
-    testContext.assertNotNull(departmentMap);
-    testContext.assertEquals(1, departmentMap.size());
-    testContext.assertEquals("research", departmentMap.get("research").getName());
-    async.complete();
-  }
 
   private static String reqId = UUID.randomUUID().toString();
 

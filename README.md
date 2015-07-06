@@ -1,6 +1,8 @@
 Vertx-RPC
 =====
 
+[![Build Status](https://travis-ci.org/LeapAppServices/vertx-rpc.svg?branch=master)](https://travis-ci.org/LeapAppServices/vertx-rpc)	
+
 Wrap eventBus of vert.x 3 as transport layer for RPC invoking, and arguments of method could be POJO or primitive.
 You just have to define `interface` of service, and then implements it with server end.
 Expose interface as client for invoker, say separation of interface and implementation.
@@ -10,7 +12,7 @@ Expose interface as client for invoker, say separation of interface and implemen
 <dependency>
 	<groupId>as.leap</groupId>
 	<artifactId>vertx-rpc</artifactId>
-	<version>3.0.0-RC1</version>
+	<version>3.0.0</version>
 </dependency>
 ```
 
