@@ -76,7 +76,7 @@ hook method running in a worker thread, so you can running with block method, we
 Sync method
 =========
 vertx-rpc also support sync method with a fiber library [quasar](http://docs.paralleluniverse.co/quasar/), you can define a method with return in normal
-java type instead of `CompleatableFuture` or `Obserable`,you don't need have a callback handler anymore. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
+java type instead of `CompleatableFuture` or `Obserable`, but we have a async method firstly then to wrapper it. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
 
 
 The more detail

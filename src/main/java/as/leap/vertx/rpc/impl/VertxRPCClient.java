@@ -121,7 +121,6 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           if (event.succeeded()) future.complete(event.result());
           else future.completeExceptionally(event.cause());
         });
-
         try {
           return AsyncCompletionStage.get(future);
         } catch (ExecutionException ex) {

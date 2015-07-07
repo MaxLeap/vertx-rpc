@@ -1,5 +1,6 @@
 package as.leap.rpc.example;
 
+import as.leap.rpc.example.impl.SampleFutureServiceImpl;
 import as.leap.rpc.example.impl.SampleSyncSPIImpl;
 import as.leap.rpc.example.spi.*;
 import as.leap.vertx.rpc.impl.RPCClientOptions;
@@ -32,7 +33,7 @@ public class VertxRPCSyncTest extends VertxRPCBase {
   public static void beforeClass() {
     Vertx vertx = new VertxFactoryImpl().vertx();
     //sync
-    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress("syncServiceAddress").addService(new SampleSyncSPIImpl()));
+    new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress("syncServiceAddress").addService(new SampleSyncSPIImpl(new SampleFutureServiceImpl())));
     RPCClientOptions<SampleSyncSPI> rpcClientSyncOptions = new RPCClientOptions<SampleSyncSPI>(vertx)
         .setBusAddress("syncServiceAddress").setServiceClass(SampleSyncSPI.class);
     sampleSyncSPISync = new VertxRPCClient<>(rpcClientSyncOptions).bindService();
