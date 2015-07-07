@@ -4,7 +4,7 @@
 
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
-  <version>3.0.1-SNAPSHOT</version>
+  <version>3.0.0-SNAPSHOT</version>
 
   <properties>
     <vertx-stack.version>3.0.0</vertx-stack.version>
@@ -45,7 +45,7 @@
 
   <profiles>
     <profile>
-      <id>sso-release</id>
+      <id>sso</id>
       <build>
         <plugins>
           <plugin>

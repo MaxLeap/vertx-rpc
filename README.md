@@ -70,8 +70,13 @@ just implement interface `RPCHook` and then put it into Option.
 RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx).setRpcHook(new ClientServiceHook())
 ```
 
-hook method running in a worker thread, so you can running with block method, we using it add `reqId` for identity method in invoking chain, and could also  
-make metric for performance monitor and logs. 
+hook method running in a worker thread, so you can running with block method, we using it add `reqId` for identify method in invoking chain, and could also make metric for performance monitor and logs. 
+
+
+Sync method
+=========
+
+
 
 
 The more detail
