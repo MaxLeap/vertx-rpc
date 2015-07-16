@@ -122,12 +122,22 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
           });
           break;
         case SYNC:
-          try {
-            Object result = service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
-            replySuccess(result, message);
-          } catch (InvocationTargetException targetException) {
-            replyFail(targetException.getTargetException(), message);
-          }
+          final Class<?>[] finalArgClasses = argClasses;
+          final Object[] finalArgs = args;
+          //wrap code with worker thread
+          vertx.executeBlocking(event -> {
+            try {
+              Object result = service.getClass().getMethod(request.getMethodName(), finalArgClasses).invoke(service, finalArgs);
+              event.complete(result);
+            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+              if (e instanceof InvocationTargetException)
+                event.fail(((InvocationTargetException) e).getTargetException());
+              else event.fail(e);
+            }
+          }, event -> {
+            if (event.succeeded()) replySuccess(event.result(), message);
+            else replyFail(event.cause(), message);
+          });
           break;
       }
     } catch (Exception e) {

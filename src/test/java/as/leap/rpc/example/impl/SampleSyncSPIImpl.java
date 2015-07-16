@@ -1,120 +1,90 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.*;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.futures.AsyncCompletionStage;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.junit.Assert;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Created by stream.
  */
 public class SampleSyncSPIImpl implements SampleSyncSPI {
 
-  private SampleFutureSPI sampleFutureSPI;
-  private Logger log = LoggerFactory.getLogger(SampleSyncSPIImpl.class);
-
-  public SampleSyncSPIImpl(SampleFutureSPI sampleFutureSPI) {
-    this.sampleFutureSPI = sampleFutureSPI;
-  }
-
   @Override
   public Department getDepartment(User user) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getDepartment(user));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
-    return null;
+    Assert.assertEquals(1, user.getId());
+    Assert.assertEquals("name", user.getName());
+
+    Department department = new Department();
+    department.setId(1);
+    department.setName("research");
+
+    return department;
   }
 
   @Override
   public Integer getDepartment(int userId, Integer anotherId) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getDepartment(userId, anotherId));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      log.error(e.getMessage(), e);
-    }
-    return null;
+    Assert.assertEquals(1, userId);
+    Assert.assertEquals(2, anotherId.intValue());
+
+    return 1;
   }
 
   @Override
   public byte[] getBytes(byte[] args) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getBytes(args));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      log.error(e.getMessage(), e);
-    }
-    return null;
+    Assert.assertArrayEquals("name".getBytes(), args);
+
+    return args;
   }
 
   @Override
   public List<Department> getDepartList(List<User> users) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getDepartList(users));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
-    return null;
+    Assert.assertEquals(1, users.get(0).getId());
+
+    List<Department> departments = new ArrayList<>();
+    Department department = new Department();
+    department.setId(1);
+    department.setName("research");
+    departments.add(department);
+
+    return departments;
   }
 
   @Override
   public Map<String, Department> getDepartMap(Map<String, User> userMap) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getDepartMap(userMap));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
-    return null;
+    Assert.assertNotNull(userMap);
+    Assert.assertEquals(1, userMap.size());
+    User user = userMap.get("name");
+    Assert.assertEquals(1, user.getId());
+    Assert.assertEquals("name", user.getName());
+
+    Map<String, Department> departmentMap = new HashMap<>();
+    Department department = new Department();
+    department.setId(1);
+    department.setName("research");
+    departmentMap.put("research", department);
+
+    return departmentMap;
   }
 
   @Override
   public Weeks getDayOfWeek(Weeks day) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.getDayOfWeek(day));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
-    return null;
+    Assert.assertEquals(Weeks.SUNDAY, day);
+
+    return Weeks.FRIDAY;
   }
 
   @Override
   public User someException() {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.someException());
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
-    return null;
+    throw new MyException("illegalArguments");
   }
 
   @Override
   public User nullInvoke(User user) {
-    try {
-      return AsyncCompletionStage.get(sampleFutureSPI.nullInvoke(user));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (InterruptedException | SuspendExecution e) {
-      e.printStackTrace();
-    }
+    Assert.assertNull(user);
     return null;
   }
 }
