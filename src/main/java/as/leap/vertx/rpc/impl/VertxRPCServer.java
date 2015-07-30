@@ -62,12 +62,12 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       //args
       if (request.getArgs() != null && request.getArgs().size() > 0) {
         List<Object> argList = request.getArgs();
-        int argCount = argList.size() / 2;
+        int argCount = argList.size() >>> 1;
         args = new Object[argCount];
         argClasses = new Class[argCount];
 
         for (int i = 0; i < argList.size(); i += 2) {
-          int index = i / 2;
+          int index = i >>> 1;
           String argClassName = (String) argList.get(i);
           byte[] argBytes = (byte[]) argList.get(i + 1);
 
@@ -134,7 +134,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
                 event.fail(((InvocationTargetException) e).getTargetException());
               else event.fail(e);
             }
-          }, event -> {
+          }, false, event -> {
             if (event.succeeded()) replySuccess(event.result(), message);
             else replyFail(event.cause(), message);
           });
