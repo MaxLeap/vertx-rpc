@@ -7,7 +7,3 @@ branches:
   only:
   - master
 
-notifications:
-  email:
-  - stream1984@gmail.com
-
