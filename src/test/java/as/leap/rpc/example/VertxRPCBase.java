@@ -43,6 +43,7 @@ abstract class VertxRPCBase {
 
   protected void assertSix(Throwable ex, TestContext testContext, Async async) {
     testContext.assertTrue(ex instanceof MyException);
+    testContext.assertEquals(400, ((MyException) ex).getCode());
     testContext.assertEquals("illegalArguments", ex.getMessage());
     async.complete();
   }

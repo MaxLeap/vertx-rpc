@@ -8,6 +8,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.LocalMap;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 /**
  *
@@ -180,7 +182,17 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
         }, false,
         event -> {
           Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
-          message.fail(500, realEx.getClass().getName() + "|" + (realEx.getMessage() == null ? realEx.getStackTrace()[0].getMethodName() : realEx.getMessage()));
+          JsonObject exJson = new JsonObject().put("message", realEx.getMessage());
+          exJson.put("exClass", ex.getClass().getName());
+          Stream.of(realEx.getClass().getDeclaredFields()).forEach(field -> {
+            field.setAccessible(true);
+            try {
+              exJson.put(field.getName(), field.get(realEx));
+            } catch (IllegalAccessException e) {
+              log.error(e.getMessage(), e);
+            }
+          });
+          message.fail(500, exJson.encode());
         });
   }
 

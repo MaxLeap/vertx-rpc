@@ -14,14 +14,12 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
 import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.json.JsonObject;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -260,7 +258,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           deliveryOptions.addHeader(CALLBACK_TYPE, callBackType);
           vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
         } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
-          Exception t = getThrowable(throwable.getMessage());
+          Exception t = getThrowable(new JsonObject(throwable.getMessage()));
           responseHandler.handle(Future.failedFuture(t));
           vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
             RPCHook.afterHandler(t, deliveryOptions.getHeaders());
@@ -277,19 +275,28 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     }
   }
 
-  private <EX extends Exception> EX getThrowable(String messExceptionString) {
-    String[] messages = messExceptionString.split("\\|", 2);
-    String exceptionClass = messages[0];
-    String message = messages[1];
+  private <EX extends Exception> EX getThrowable(JsonObject exJson) {
+    String exMessage = exJson.getString("message");
+    String className = exJson.getString("exClass");
     try {
-      Class<EX> clazz = (Class<EX>) Class.forName(exceptionClass);
-      return clazz.getConstructor(String.class).newInstance(message);
-    } catch (NoSuchMethodException | ClassNotFoundException e) {
-      return (EX) new VertxRPCException("Invoke method " + message + " throw exception " + exceptionClass);
-    } catch (InstantiationException | IllegalAccessException e) {
-      throw new VertxRPCException(e);
-    } catch (InvocationTargetException e) {
-      throw new VertxRPCException(e.getTargetException());
+      Constructor<EX> exConstructor = (Constructor<EX>) Class.forName(className).getConstructor(String.class);
+      EX ex = exConstructor.newInstance(exMessage);
+      exJson.remove("message");
+      exJson.remove("exClass");
+      exJson.getMap().forEach((s, o) -> {
+        try {
+          Field field = ex.getClass().getDeclaredField(s);
+          field.setAccessible(true);
+          field.set(ex, o);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+          throw new VertxRPCException(e);
+        }
+      });
+      return ex;
+    } catch (Exception e) {
+      if (e instanceof NoSuchMethodException)
+        return (EX) new VertxRPCException(String.format("invoke remote method failed. class name: %s, message: %s", className, exMessage));
+      else throw new VertxRPCException(e);
     }
   }
 

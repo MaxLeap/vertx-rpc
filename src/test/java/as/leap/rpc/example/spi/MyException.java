@@ -5,6 +5,16 @@ package as.leap.rpc.example.spi;
  */
 public class MyException extends RuntimeException {
 
+  private int code = 400;
+
+  public int getCode() {
+    return code;
+  }
+
+  public void setCode(int code) {
+    this.code = code;
+  }
+
   public MyException(String message) {
     super(message);
   }
