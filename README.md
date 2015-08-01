@@ -12,7 +12,7 @@ Expose interface as client for invoker, say separation of interface and implemen
 <dependency>
 	<groupId>as.leap</groupId>
 	<artifactId>vertx-rpc</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 </dependency>
 ```
 
@@ -61,9 +61,17 @@ myService.hello("world", result -> {
 	
 full example could be found [here](https://github.com/stream1984/vertx-rpc-example).
 
+
+Custom exception
+=========
+You can custom exception as normal, the exception will be passed from server side to client side.  
+but the exception your defined that have to a `Constructor with a parameter which type have to be String`.  
+you can find example [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/spi/MyException.java#L18)
+
+
 Hook method
 =========
-you can also hook your method either client or server or both.  
+You can also hook your method either client or server or both.  
 just implement interface `RPCHook` and then put it into Option.  
 
 ```java
@@ -77,7 +85,7 @@ Sync method
 =========
 vertx-rpc also support sync method with a fiber library [quasar](http://docs.paralleluniverse.co/quasar/), you can define a method with return in normal
 java type instead of `CompleatableFuture` or `Obserable`, all the sync method in server side will be running in `Worker Thread`. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
-
+we will continue improve sync method while [vertx-sync](https://github.com/vert-x3/vertx-sync) release.
 
 The more detail
 =========
