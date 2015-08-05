@@ -234,8 +234,8 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
       final String callBackType = deliveryOptions.getHeaders().get(CALLBACK_TYPE);
       deliveryOptions.getHeaders().remove(CALLBACK_TYPE);
 
-      if (message.succeeded()) {
-        try {
+      try {
+        if (message.succeeded()) {
           RPCResponse response = asObject(message.result().body(), RPCResponse.class);
           String responseTypeName = response.getResponseTypeName();
           byte[] responseBytes = response.getResponse();
@@ -247,30 +247,30 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
             RPCHook.afterHandler(realResult, deliveryOptions.getHeaders());
             future.complete();
           }, false, null));
-        } catch (Exception e) {
-          responseHandler.handle(Future.failedFuture(new VertxRPCException(e)));
-        }
-      } else {
-        //filter timeout exception
-        Throwable throwable = message.cause();
-        if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.TIMEOUT && currentRetryTimes < retryTimes) {
-          this.currentRetryTimes++;
-          deliveryOptions.addHeader(CALLBACK_TYPE, callBackType);
-          vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
-        } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
-          Exception t = getThrowable(new JsonObject(throwable.getMessage()));
-          responseHandler.handle(Future.failedFuture(t));
-          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
-            RPCHook.afterHandler(t, deliveryOptions.getHeaders());
-            future.complete();
-          }, false, null));
         } else {
-          responseHandler.handle(Future.failedFuture(throwable));
-          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
-            RPCHook.afterHandler(throwable, deliveryOptions.getHeaders());
-            future.complete();
-          }, false, null));
+          //filter timeout exception
+          Throwable throwable = message.cause();
+          if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.TIMEOUT && currentRetryTimes < retryTimes) {
+            this.currentRetryTimes++;
+            deliveryOptions.addHeader(CALLBACK_TYPE, callBackType);
+            vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, this);
+          } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
+            Exception t = getThrowable(new JsonObject(throwable.getMessage()));
+            responseHandler.handle(Future.failedFuture(t));
+            vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+              RPCHook.afterHandler(t, deliveryOptions.getHeaders());
+              future.complete();
+            }, false, null));
+          } else {
+            responseHandler.handle(Future.failedFuture(throwable));
+            vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+              RPCHook.afterHandler(throwable, deliveryOptions.getHeaders());
+              future.complete();
+            }, false, null));
+          }
         }
+      } catch (Exception e) {
+        responseHandler.handle(Future.failedFuture(new VertxRPCException(e)));
       }
     }
   }
