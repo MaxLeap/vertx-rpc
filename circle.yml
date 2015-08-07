@@ -1,3 +1,7 @@
 machine:
   java:
     version: oraclejdk8
+notify:
+  webhooks:
+    # A list of hook hashes, containing the url field
+    - url: https://hook.bearychat.com/=bw63g/circleci/8257c8cc48790575b56e7635ef1e4e7e
