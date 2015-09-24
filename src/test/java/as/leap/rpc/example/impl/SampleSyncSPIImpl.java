@@ -1,6 +1,7 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.*;
+import co.paralleluniverse.fibers.Suspendable;
 import org.junit.Assert;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Map;
  */
 public class SampleSyncSPIImpl implements SampleSyncSPI {
 
+  @Suspendable
   @Override
   public Department getDepartment(User user) {
     Assert.assertEquals(1, user.getId());
@@ -21,18 +23,18 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     Department department = new Department();
     department.setId(1);
     department.setName("research");
-
     return department;
   }
 
+  @Suspendable
   @Override
   public Integer getDepartment(int userId, Integer anotherId) {
     Assert.assertEquals(1, userId);
     Assert.assertEquals(2, anotherId.intValue());
-
     return 1;
   }
 
+  @Suspendable
   @Override
   public byte[] getBytes(byte[] args) {
     Assert.assertArrayEquals("name".getBytes(), args);
@@ -40,6 +42,7 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     return args;
   }
 
+  @Suspendable
   @Override
   public List<Department> getDepartList(List<User> users) {
     Assert.assertEquals(1, users.get(0).getId());
@@ -53,6 +56,7 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     return departments;
   }
 
+  @Suspendable
   @Override
   public Map<String, Department> getDepartMap(Map<String, User> userMap) {
     Assert.assertNotNull(userMap);
@@ -70,6 +74,7 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     return departmentMap;
   }
 
+  @Suspendable
   @Override
   public Weeks getDayOfWeek(Weeks day) {
     Assert.assertEquals(Weeks.SUNDAY, day);
@@ -77,11 +82,13 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     return Weeks.FRIDAY;
   }
 
+  @Suspendable
   @Override
   public User someException() {
     throw new MyException("illegalArguments");
   }
 
+  @Suspendable
   @Override
   public User nullInvoke(User user) {
     Assert.assertNull(user);

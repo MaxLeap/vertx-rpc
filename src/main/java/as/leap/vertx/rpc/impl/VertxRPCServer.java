@@ -3,6 +3,7 @@ package as.leap.vertx.rpc.impl;
 
 import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
+import co.paralleluniverse.fibers.Fiber;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -126,20 +127,19 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
         case SYNC:
           final Class<?>[] finalArgClasses = argClasses;
           final Object[] finalArgs = args;
-          //wrap code with worker thread
-          vertx.executeBlocking(event -> {
+          //using fiber
+          new Fiber<Void>(() -> {
             try {
               Object result = service.getClass().getMethod(request.getMethodName(), finalArgClasses).invoke(service, finalArgs);
-              event.complete(result);
+              replySuccess(result, message);
             } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
-              if (e instanceof InvocationTargetException)
-                event.fail(((InvocationTargetException) e).getTargetException());
-              else event.fail(e);
+              if (e instanceof InvocationTargetException) {
+                replyFail(((InvocationTargetException) e).getTargetException(), message);
+              } else {
+                replyFail(e, message);
+              }
             }
-          }, false, event -> {
-            if (event.succeeded()) replySuccess(event.result(), message);
-            else replyFail(event.cause(), message);
-          });
+          }).setName("vertx-rpc-serve-fiber").start();
           break;
       }
     } catch (Exception e) {

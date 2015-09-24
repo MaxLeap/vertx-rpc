@@ -12,7 +12,7 @@ Expose interface as client for invoker, say separation of interface and implemen
 <dependency>
 	<groupId>as.leap</groupId>
 	<artifactId>vertx-rpc</artifactId>
-	<version>3.0.1</version>
+	<version>3.0.2</version>
 </dependency>
 ```
 
@@ -84,8 +84,7 @@ hook method running in a worker thread, so you can running with block method, we
 Sync method
 =========
 vertx-rpc also support sync method with a fiber library [quasar](http://docs.paralleluniverse.co/quasar/), you can define a method with return in normal
-java type instead of `CompleatableFuture` or `Obserable`, all the sync method in server side will be running in `Worker Thread`. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
-we will continue improve sync method while [vertx-sync](https://github.com/vert-x3/vertx-sync) release.
+java type instead of `CompleatableFuture` or `Obserable`, all the sync method in server side will be running in `Fiber`. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
 
 The more detail
 =========
