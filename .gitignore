@@ -12,6 +12,7 @@
 *.log
 *.iml
 .DS_Store
+.vertx/
 # Package Files #
 *.jar
 *.war

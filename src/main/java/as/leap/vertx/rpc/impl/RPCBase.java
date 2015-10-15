@@ -30,8 +30,8 @@ abstract class RPCBase {
   }
 
   boolean isWrapType(Class clazz) {
-    return clazz.isPrimitive() || Collection.class.isAssignableFrom(clazz) || clazz.isArray()
-        || Map.class.isAssignableFrom(clazz) || clazz.isEnum()
+    return clazz.isPrimitive() || Collection.class.isAssignableFrom(clazz)
+				|| clazz.isArray() || clazz.isInstance(Map.class) || clazz.isEnum()
         || Modifier.isAbstract(clazz.getModifiers()) || Modifier.isInterface(clazz.getModifiers());
   }
 

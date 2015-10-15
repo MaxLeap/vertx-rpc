@@ -286,8 +286,10 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
       exJson.getMap().forEach((s, o) -> {
         try {
           Field field = ex.getClass().getDeclaredField(s);
-          field.setAccessible(true);
-          field.set(ex, o);
+          if (!Modifier.isStatic(field.getModifiers())) {
+							field.setAccessible(true);
+							field.set(ex, o);
+          }
         } catch (NoSuchFieldException | IllegalAccessException e) {
           throw new VertxRPCException(e);
         }
