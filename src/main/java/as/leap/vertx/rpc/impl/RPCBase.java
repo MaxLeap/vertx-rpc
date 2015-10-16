@@ -1,5 +1,6 @@
 package as.leap.vertx.rpc.impl;
 
+import as.leap.vertx.rpc.IgnoreWrapCheck;
 import as.leap.vertx.rpc.WireProtocol;
 import io.protostuff.JsonIOUtil;
 import io.protostuff.LinkedBuffer;
@@ -30,9 +31,15 @@ abstract class RPCBase {
   }
 
   boolean isWrapType(Class clazz) {
-    return clazz.isPrimitive() || Collection.class.isAssignableFrom(clazz)
-				|| clazz.isArray() || clazz.isInstance(Map.class) || clazz.isEnum()
-        || Modifier.isAbstract(clazz.getModifiers()) || Modifier.isInterface(clazz.getModifiers());
+    if (clazz.getAnnotation(IgnoreWrapCheck.class) != null) {
+      return false;
+    } else {
+      return clazz.isPrimitive() || clazz.isArray() || clazz.isEnum()
+          || Collection.class.isAssignableFrom(clazz)
+          || Map.class.isAssignableFrom(clazz)
+          || Modifier.isAbstract(clazz.getModifiers())
+          || clazz.isInterface();
+    }
   }
 
   private <T> byte[] toBytes(Schema<T> schema, T object) throws Exception {
