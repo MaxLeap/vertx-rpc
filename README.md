@@ -1,7 +1,7 @@
 Vertx-RPC
 =====
 
-[![Build Status](https://circleci.com/gh/LeapCloud/vertx-rpc.svg?style=shield&circle-token=67793c816897b2aa0dc59dda6a4b4079939b3eb7)](https://circleci.com/gh/organizations/LeapCloud)	
+[![Build Status](https://circleci.com/gh/MaxLeap/vertx-rpc.svg?style=shield&circle-token=67793c816897b2aa0dc59dda6a4b4079939b3eb7)](https://circleci.com/gh/organizations/LeapCloud)	
 
 Wrap eventBus of vert.x 3 as transport layer for RPC invoking, and arguments of method could be POJO or primitive.
 You just have to define `interface` of service, and then implements it with server end.
@@ -66,7 +66,7 @@ Custom exception
 =========
 You can custom exception as normal, the exception will be passed from server side to client side.  
 but the exception your defined that have to a `Constructor with a parameter which type have to be String`.  
-you can find example [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/spi/MyException.java#L18)
+you can find example [here](https://github.com/MaxLeap/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/spi/MyException.java#L18)
 
 
 Hook method
