@@ -7,6 +7,7 @@ import co.paralleluniverse.fibers.Fiber;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxException;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
@@ -23,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 /**
- *
+ * Stream
  */
 public class VertxRPCServer extends RPCBase implements RPCServer {
   private static final Logger log = LoggerFactory.getLogger(VertxRPCServer.class);
@@ -188,7 +189,15 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
             field.setAccessible(true);
             try {
               exJson.put(field.getName(), field.get(realEx));
-            } catch (IllegalAccessException e) {
+            } catch (Exception e) {
+              if (e instanceof VertxException) {
+                try {
+                  Optional.ofNullable(field.get(realEx))
+                      .ifPresent(value -> exJson.put(field.getName(), value.toString()));
+                } catch (IllegalAccessException e1) {
+                  log.error(e1.getMessage(), e1);
+                }
+              }
               log.error(e.getMessage(), e);
             }
           });
