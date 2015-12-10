@@ -94,7 +94,8 @@ We only dependency `Protostuff` as Codec, default we using protobuf, you can als
 ```java
     new RPCServerOptions(vertx).setWireProtocol(WireProtocol.JSON))
     new RPCClientOptions<MyService>(vertx).setWireProtocol(WireProtocol.JSON))	
-```
+```  
+`for now there is bug in JSON Protocol, see [here](https://github.com/MaxLeap/vertx-rpc/issues/6)` 
 We also support `Reactive` as return type, so you can define your interface as
 
 `Observable<String> hello(String what)` instead of `void hello(String what, Handler<AsyncResult<String>> handler)`
