@@ -30,26 +30,4 @@ public interface RPCHook {
    */
   void afterHandler(Throwable throwable, MultiMap header);
 
-  /**
-   * @return Hook
-   */
-  static RPCHook emptyRPCHook() {
-    return new RPCHook() {
-      @Override
-      public void beforeHandler(String interfaceName, String methodName, Object[] args, MultiMap header) {
-
-      }
-
-      @Override
-      public void afterHandler(Object response, MultiMap header) {
-
-      }
-
-      @Override
-      public void afterHandler(Throwable throwable, MultiMap header) {
-
-      }
-    };
-  }
-
 }

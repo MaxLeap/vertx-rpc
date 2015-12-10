@@ -38,6 +38,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
   private RPCClientOptions options;
   private String serviceAddress;
   private long timeout;
+  private RPCHook rpcHook;
 
   public VertxRPCClient(RPCClientOptions<T> options) {
     super(options.getWireProtocol());
@@ -46,6 +47,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     this.timeout = options.getTimeout();
     this.serviceAddress = options.getBusAddress();
     this.service = options.getServiceClass();
+    this.rpcHook = options.getRpcHook();
     checkBusAddress(serviceAddress);
     Objects.requireNonNull(service, "service's interface can not be null.");
   }
@@ -195,15 +197,22 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     //
     byte[] requestBytes = asBytes(request);
 
+    deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
+    final ReplyHandler<E> replyHandler = new ReplyHandler<>(requestProp.getRetryTimes(), 0, requestBytes, deliveryOptions, responseHandler);
     //execute hook before send message
-    vertx.executeBlocking(future -> {
-      options.getRpcHook().beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
-      future.complete();
-    }, false, event -> {
-      deliveryOptions.addHeader(CALLBACK_TYPE, callBackType.name());
-      ReplyHandler<E> replyHandler = new ReplyHandler<>(requestProp.getRetryTimes(), 0, requestBytes, deliveryOptions, responseHandler);
+    if (rpcHook != null) {
+      if (options.isHookOnEventLoop()) {
+        rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
+        vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler);
+      } else {
+        vertx.executeBlocking(future -> {
+          rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), args, deliveryOptions.getHeaders());
+          future.complete();
+        }, false, event -> vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler));
+      }
+    } else {
       vertx.eventBus().send(serviceAddress, requestBytes, deliveryOptions, replyHandler);
-    });
+    }
   }
 
   /**
@@ -228,8 +237,7 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
     @Override
     public void handle(AsyncResult<Message<byte[]>> message) {
-      //get hook and remove key of callback type.
-      RPCHook RPCHook = options.getRpcHook();
+      //remove key of callback type.
       //for retry
       final String callBackType = deliveryOptions.getHeaders().get(CALLBACK_TYPE);
       deliveryOptions.getHeaders().remove(CALLBACK_TYPE);
@@ -243,10 +251,16 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           E realResult = (E) (result instanceof WrapperType ? ((WrapperType) result).getValue() : result);
           //execute hook after handler message
           responseHandler.handle(Future.succeededFuture(realResult));
-          vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
-            RPCHook.afterHandler(realResult, deliveryOptions.getHeaders());
-            future.complete();
-          }, false, null));
+          if (rpcHook != null) {
+            if (options.isHookOnEventLoop()) {
+              rpcHook.afterHandler(realResult, deliveryOptions.getHeaders());
+            } else {
+              vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+                rpcHook.afterHandler(realResult, deliveryOptions.getHeaders());
+                future.complete();
+              }, false, null));
+            }
+          }
         } else {
           //filter timeout exception
           Throwable throwable = message.cause();
@@ -257,20 +271,27 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
           } else if (throwable instanceof ReplyException && ((ReplyException) throwable).failureType() == ReplyFailure.RECIPIENT_FAILURE) {
             Exception t = getThrowable(new JsonObject(throwable.getMessage()));
             responseHandler.handle(Future.failedFuture(t));
-            vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
-              RPCHook.afterHandler(t, deliveryOptions.getHeaders());
-              future.complete();
-            }, false, null));
+            executeAfterHookOnFail(t, deliveryOptions);
           } else {
             responseHandler.handle(Future.failedFuture(throwable));
-            vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
-              RPCHook.afterHandler(throwable, deliveryOptions.getHeaders());
-              future.complete();
-            }, false, null));
+            executeAfterHookOnFail(throwable, deliveryOptions);
           }
         }
       } catch (Exception e) {
         responseHandler.handle(Future.failedFuture(new VertxRPCException(e)));
+      }
+    }
+  }
+
+  private void executeAfterHookOnFail(Throwable t, DeliveryOptions deliveryOptions) {
+    if (rpcHook != null) {
+      if (options.isHookOnEventLoop()) {
+        rpcHook.afterHandler(t, deliveryOptions.getHeaders());
+      } else {
+        vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+          rpcHook.afterHandler(t, deliveryOptions.getHeaders());
+          future.complete();
+        }, false, null));
       }
     }
   }
@@ -287,10 +308,10 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
         try {
           Field field = ex.getClass().getDeclaredField(s);
           if (!Modifier.isStatic(field.getModifiers())) {
-							field.setAccessible(true);
-							field.set(ex, o);
+            field.setAccessible(true);
+            field.set(ex, o);
           }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        } catch (Exception e) {
           throw new VertxRPCException(e);
         }
       });

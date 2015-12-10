@@ -5,8 +5,6 @@ import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.WireProtocol;
 import io.vertx.core.Vertx;
 
-import static as.leap.vertx.rpc.RPCHook.emptyRPCHook;
-
 /**
  * Created by stream.
  */
@@ -15,8 +13,9 @@ public class RPCClientOptions<T> {
   private Vertx vertx;
   private String busAddress;
   private Class<T> serviceClass;
+  private boolean isHookOnEventLoop = true;
   private long timeout = 10 * 1000L;
-  private RPCHook rpcHook = emptyRPCHook();
+  private RPCHook rpcHook;
   private WireProtocol wireProtocol = WireProtocol.PROTOBUF;
 
 
@@ -36,6 +35,7 @@ public class RPCClientOptions<T> {
     this.wireProtocol = other.getWireProtocol();
     this.serviceClass = other.getServiceClass();
     this.rpcHook = other.getRpcHook();
+    this.isHookOnEventLoop = other.isHookOnEventLoop;
   }
 
   public RPCClientOptions<T> setBusAddress(String busAddress) {
@@ -51,6 +51,15 @@ public class RPCClientOptions<T> {
   public RPCClientOptions<T> setServiceClass(Class<T> serviceClass) {
     this.serviceClass = serviceClass;
     return this;
+  }
+
+  public RPCClientOptions<T> setHookOnEventLoop(boolean hookOnEventLoop) {
+    isHookOnEventLoop = hookOnEventLoop;
+    return this;
+  }
+
+  public boolean isHookOnEventLoop() {
+    return isHookOnEventLoop;
   }
 
   public RPCHook getRpcHook() {

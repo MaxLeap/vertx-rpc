@@ -1,6 +1,7 @@
 package as.leap.vertx.rpc.impl;
 
 
+import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
 import co.paralleluniverse.fibers.Fiber;
@@ -32,6 +33,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private final LocalMap<String, SharedWrapper> serviceMapping;
   private final MessageConsumer<byte[]> consumer;
   private RPCServerOptions options;
+  private RPCHook rpcHook;
   private Vertx vertx;
 
   public VertxRPCServer(RPCServerOptions options) {
@@ -42,6 +44,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
     if (options.getServiceMapping().size() == 0)
       throw new VertxRPCException("please add service implementation to RPCServerOptions.");
     this.serviceMapping = options.getServiceMapping();
+    this.rpcHook = options.getRpcHook();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
     this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());
     registryService();
@@ -92,10 +95,19 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       final Object[] finalArgs = args;
       final Class<?>[] finalArgClasses = argClasses;
       //hook
-      vertx.executeBlocking(future -> {
-        options.getRpcHook().beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
-        future.complete();
-      }, false, event -> executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs));
+      if (rpcHook != null) {
+        if (options.isHookOnEventLoop()) {
+          rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+          executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs);
+        } else {
+          vertx.executeBlocking(future -> {
+            rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+            future.complete();
+          }, false, event -> executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs));
+        }
+      } else {
+        executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs);
+      }
     } catch (Exception e) {
       replyFail(e, message);
     }
@@ -149,60 +161,67 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   }
 
   private <T> void replySuccess(T result, Message<byte[]> message) {
-    //hook
-    vertx.executeBlocking(future -> {
-      options.getRpcHook().afterHandler(result, message.headers());
-      future.complete();
-    }, false, event -> {
+    try {
       String resultClassName;
       byte[] resultBytes = {};
-      try {
-        if (Optional.ofNullable(result).isPresent()) {
-          Class<?> resultClass = result.getClass();
-          resultClassName = isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
-          resultBytes = asBytes(result);
-        } else {
-          // result is null, so we have wrap it.
-          resultClassName = WrapperType.class.getName();
-        }
-        RPCResponse response = new RPCResponse(resultClassName, resultBytes);
-        byte[] responseBytes = asBytes(response);
-        message.reply(responseBytes);
-      } catch (Exception e) {
-        replyFail(e, message);
+      if (Optional.ofNullable(result).isPresent()) {
+        Class<?> resultClass = result.getClass();
+        resultClassName = isWrapType(resultClass) ? WrapperType.class.getName() : resultClass.getName();
+        resultBytes = asBytes(result);
+      } else {
+        // result is null, so we have wrap it.
+        resultClassName = WrapperType.class.getName();
       }
-    });
+      RPCResponse response = new RPCResponse(resultClassName, resultBytes);
+      byte[] responseBytes = asBytes(response);
+      message.reply(responseBytes);
+      //hook
+      if (rpcHook != null) {
+        if (options.isHookOnEventLoop()) {
+          rpcHook.afterHandler(result, message.headers());
+        } else {
+          vertx.executeBlocking(future -> {
+            rpcHook.afterHandler(result, message.headers());
+            future.complete();
+          }, false, null);
+        }
+      }
+    } catch (Exception e) {
+      replyFail(e, message);
+    }
   }
 
   private void replyFail(Throwable ex, Message<byte[]> message) {
+    Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
+    JsonObject exJson = new JsonObject().put("message", realEx.getMessage());
+    exJson.put("exClass", ex.getClass().getName());
+    Stream.of(realEx.getClass().getDeclaredFields()).forEach(field -> {
+      field.setAccessible(true);
+      try {
+        exJson.put(field.getName(), field.get(realEx));
+      } catch (Exception e) {
+        if (e instanceof VertxException) {
+          try {
+            Optional.ofNullable(field.get(realEx)).ifPresent(value -> exJson.put(field.getName(), value.toString()));
+          } catch (IllegalAccessException illegalEx) {
+            log.error(illegalEx.getMessage(), illegalEx);
+          }
+        }
+        log.error(e.getMessage(), e);
+      }
+    });
+    message.fail(500, exJson.encode());
     //hook
-    vertx.executeBlocking(future -> {
-          log.error(ex.getMessage(), ex);
-          options.getRpcHook().afterHandler(ex, message.headers());
+    if (rpcHook != null) {
+      if (options.isHookOnEventLoop()) {
+        rpcHook.afterHandler(ex, message.headers());
+      } else {
+        vertx.executeBlocking(future -> {
+          rpcHook.afterHandler(ex, message.headers());
           future.complete();
-        }, false,
-        event -> {
-          Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
-          JsonObject exJson = new JsonObject().put("message", realEx.getMessage());
-          exJson.put("exClass", ex.getClass().getName());
-          Stream.of(realEx.getClass().getDeclaredFields()).forEach(field -> {
-            field.setAccessible(true);
-            try {
-              exJson.put(field.getName(), field.get(realEx));
-            } catch (Exception e) {
-              if (e instanceof VertxException) {
-                try {
-                  Optional.ofNullable(field.get(realEx))
-                      .ifPresent(value -> exJson.put(field.getName(), value.toString()));
-                } catch (IllegalAccessException e1) {
-                  log.error(e1.getMessage(), e1);
-                }
-              }
-              log.error(e.getMessage(), e);
-            }
-          });
-          message.fail(500, exJson.encode());
-        });
+        }, false, null);
+      }
+    }
   }
 
   @Override

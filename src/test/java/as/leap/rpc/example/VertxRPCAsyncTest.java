@@ -41,11 +41,11 @@ public class VertxRPCAsyncTest extends VertxRPCBase {
     //handler
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
         .setRpcHook(new ServerServiceHook())
-        .addService(new SampleHandlerServiceImpl()).setWireProtocol(WireProtocol.JSON));
+        .addService(new SampleHandlerServiceImpl()).setWireProtocol(WireProtocol.PROTOBUF));
 
     RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx)
         .setRpcHook(new ClientServiceHook())
-        .setBusAddress(busAddressHandler).setServiceClass(SampleHandlerSPI.class).setWireProtocol(WireProtocol.JSON);
+        .setBusAddress(busAddressHandler).setServiceClass(SampleHandlerSPI.class).setWireProtocol(WireProtocol.PROTOBUF);
     sampleHandlerSPI = new VertxRPCClient<>(rpcClientHandlerOptions).bindService();
 
     //reactive
