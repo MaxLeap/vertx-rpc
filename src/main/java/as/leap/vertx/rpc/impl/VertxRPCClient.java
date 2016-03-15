@@ -255,10 +255,10 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
             if (options.isHookOnEventLoop()) {
               rpcHook.afterHandler(realResult, deliveryOptions.getHeaders());
             } else {
-              vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+              vertx.executeBlocking(future -> {
                 rpcHook.afterHandler(realResult, deliveryOptions.getHeaders());
                 future.complete();
-              }, false, null));
+              }, false, null);
             }
           }
         } else {
@@ -288,10 +288,10 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
       if (options.isHookOnEventLoop()) {
         rpcHook.afterHandler(t, deliveryOptions.getHeaders());
       } else {
-        vertx.runOnContext(aVoid -> vertx.executeBlocking(future -> {
+        vertx.executeBlocking(future -> {
           rpcHook.afterHandler(t, deliveryOptions.getHeaders());
           future.complete();
-        }, false, null));
+        }, false, null);
       }
     }
   }
