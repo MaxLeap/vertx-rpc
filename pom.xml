@@ -4,7 +4,7 @@
 
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
-  <version>3.1.1-SNAPSHOT</version>
+  <version>3.1.1</version>
 
   <properties>
     <vertx-stack.version>3.2.1</vertx-stack.version>
@@ -41,6 +41,7 @@
     <connection>scm:git:https://github.com/LeapAppServices/vertx-rpc</connection>
     <developerConnection>scm:git:https://github.com/LeapAppServices/vertx-rpc.git</developerConnection>
     <url>https://github.com/LeapAppServices/vertx-rpc</url>
+    <tag>vertx-rpc-3.1.1</tag>
   </scm>
 
   <profiles>
