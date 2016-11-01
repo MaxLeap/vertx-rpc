@@ -58,7 +58,15 @@ myService.hello("world", result -> {
 	//TODO
 });
 ```
-	
+
+We also support vertx's future as return type, you can specific return type with Future.
+
+```java
+
+Future<User> getUserById(int id);
+
+```
+
 full example could be found [here](https://github.com/stream1984/vertx-rpc-example).
 
 
@@ -81,21 +89,8 @@ RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOption
 hook method running in a worker thread, so you can running with block method, we using it add `reqId` for identify method in invoking chain, and could also make metric for performance monitor and logs. 
 
 
-Sync method
-=========
-vertx-rpc also support sync method with a fiber library [quasar](http://docs.paralleluniverse.co/quasar/), you can define a method with return in normal
-java type instead of `CompleatableFuture` or `Obserable`, all the sync method in server side will be running in `Fiber`. the example is [here](https://github.com/LeapAppServices/vertx-rpc/blob/master/src/test/java/as/leap/rpc/example/VertxRPCSyncTest.java) 
-
 The more detail
 =========
-
-We only dependency `Protostuff` as Codec, default we using protobuf, you can also specify JSON as wire protocol both on client and server.
-
-```java
-    new RPCServerOptions(vertx).setWireProtocol(WireProtocol.JSON))
-    new RPCClientOptions<MyService>(vertx).setWireProtocol(WireProtocol.JSON))	
-```  
-`for now there is bug in JSON Protocol, see [here](https://github.com/MaxLeap/vertx-rpc/issues/6)` 
 We also support `Reactive` as return type, so you can define your interface as
 
 `Observable<String> hello(String what)` instead of `void hello(String what, Handler<AsyncResult<String>> handler)`

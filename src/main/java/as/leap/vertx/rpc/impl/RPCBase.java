@@ -1,8 +1,6 @@
 package as.leap.vertx.rpc.impl;
 
 import as.leap.vertx.rpc.IgnoreWrapCheck;
-import as.leap.vertx.rpc.WireProtocol;
-import io.protostuff.JsonIOUtil;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtobufIOUtil;
 import io.protostuff.Schema;
@@ -18,13 +16,7 @@ import java.util.Objects;
  * Created by stream.
  */
 abstract class RPCBase {
-  protected static final String CALLBACK_TYPE = "callbackType";
-
-  private WireProtocol wireProtocol;
-
-  public RPCBase(WireProtocol wireProtocol) {
-    this.wireProtocol = wireProtocol;
-  }
+  static final String CALLBACK_TYPE = "callbackType";
 
   void checkBusAddress(String address) {
     Objects.requireNonNull(address, "service's event bus address can not be null.");
@@ -35,10 +27,10 @@ abstract class RPCBase {
       return false;
     } else {
       return clazz.isPrimitive() || clazz.isArray() || clazz.isEnum()
-          || Collection.class.isAssignableFrom(clazz)
-          || Map.class.isAssignableFrom(clazz)
-          || Modifier.isAbstract(clazz.getModifiers())
-          || clazz.isInterface();
+        || Collection.class.isAssignableFrom(clazz)
+        || Map.class.isAssignableFrom(clazz)
+        || Modifier.isAbstract(clazz.getModifiers())
+        || clazz.isInterface();
     }
   }
 
@@ -46,14 +38,7 @@ abstract class RPCBase {
     LinkedBuffer buffer = LinkedBuffer.allocate();
     byte[] bytes = new byte[0];
     try {
-      switch (wireProtocol) {
-        case PROTOBUF:
-          bytes = ProtobufIOUtil.toByteArray(object, schema, buffer);
-          break;
-        case JSON:
-          bytes = JsonIOUtil.toByteArray(object, schema, false, buffer);
-          break;
-      }
+      bytes = ProtobufIOUtil.toByteArray(object, schema, buffer);
     } finally {
       buffer.clear();
     }
@@ -82,20 +67,11 @@ abstract class RPCBase {
   <T> T asObject(byte[] bytes, Class<T> clazz) throws IOException {
     Schema<T> schema = RuntimeSchema.getSchema(clazz);
     T object = schema.newMessage();
-    switch (wireProtocol) {
-      case PROTOBUF:
-        ProtobufIOUtil.mergeFrom(bytes, object, schema);
-        break;
-      case JSON:
-        //if length of bytes is zero, we have to wrap it as null.
-        if (bytes.length == 0) object = null;
-        else JsonIOUtil.mergeFrom(bytes, object, schema, false);
-        break;
-    }
+    ProtobufIOUtil.mergeFrom(bytes, object, schema);
     return object;
   }
 
   protected enum CallbackType {
-    ASYNC_HANDLER, REACTIVE, COMPLETABLE_FUTURE, SYNC
+    ASYNC_HANDLER, FUTURE, REACTIVE, COMPLETABLE_FUTURE
   }
 }

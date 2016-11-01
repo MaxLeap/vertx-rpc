@@ -4,7 +4,6 @@ import as.leap.vertx.rpc.RPCClient;
 import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.RequestProp;
 import as.leap.vertx.rpc.VertxRPCException;
-import co.paralleluniverse.fibers.futures.AsyncCompletionStage;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -25,7 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,7 +39,6 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
   private RPCHook rpcHook;
 
   public VertxRPCClient(RPCClientOptions<T> options) {
-    super(options.getWireProtocol());
     this.options = options;
     this.vertx = options.getVertx();
     this.timeout = options.getTimeout();
@@ -64,8 +61,8 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
     request.setServiceName(serviceName);
     request.setMethodName(method.getName());
     List<Class<?>> argsClass = Stream.of(method.getParameterTypes())
-        .filter(argClass -> !argClass.isAssignableFrom(Handler.class))
-        .collect(Collectors.toList());
+      .filter(argClass -> !argClass.isAssignableFrom(Handler.class))
+      .collect(Collectors.toList());
 
     List<String> argsClassName = argsClass.stream().map(clazz -> {
       if (isWrapType(clazz)) {
@@ -94,12 +91,20 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
     //check return type
     Optional<Class<?>> lastParameter = Optional.ofNullable(method.getParameterCount() == 0
-        ? null
-        : method.getParameterTypes()[method.getParameterCount() - 1]);
+      ? null
+      : method.getParameterTypes()[method.getParameterCount() - 1]);
 
     CallbackType callbackType = getCallbackType(method.getReturnType(), lastParameter);
     RequestProperties requestProperties = extractRequestProp(method);
     switch (callbackType) {
+      case FUTURE:
+        Future<?> future = Future.future();
+        invoke(request, args, requestProperties, callbackType, future.completer());
+        return future;
+      case ASYNC_HANDLER:
+        Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
+        invoke(request, args, requestProperties, callbackType, handler);
+        return null;
       case REACTIVE:
         return Observable.create(new ReactiveHandler<Object>() {
           @Override
@@ -107,40 +112,26 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
             invoke(request, args, requestProperties, callbackType, this);
           }
         });
-      case ASYNC_HANDLER:
-        Handler<AsyncResult<Object>> handler = (Handler<AsyncResult<Object>>) args[args.length - 1];
-        invoke(request, args, requestProperties, callbackType, handler);
-        return null;
       case COMPLETABLE_FUTURE:
         CompletableFutureHandler<Object> futureHandler = new CompletableFutureHandler<>();
         invoke(request, args, requestProperties, callbackType, futureHandler);
         return futureHandler.future;
-      case SYNC:
-        CompletableFuture<Object> future = new CompletableFuture<>();
-        invoke(request, args, requestProperties, callbackType, event -> {
-          if (event.succeeded()) future.complete(event.result());
-          else future.completeExceptionally(event.cause());
-        });
-        try {
-          return AsyncCompletionStage.get(future);
-        } catch (ExecutionException ex) {
-          //try to catch interface exception from server side.
-          throw ex.getCause();
-        }
       default:
         throw new VertxRPCException("unKnow the type of callback");
     }
   }
 
   private CallbackType getCallbackType(Class<?> returnType, Optional<Class<?>> lastParameter) {
-    if (Observable.class.isAssignableFrom(returnType)) {
-      return CallbackType.REACTIVE;
-    } else if (CompletableFuture.class.isAssignableFrom(returnType)) {
-      return CallbackType.COMPLETABLE_FUTURE;
+    if (Future.class.isAssignableFrom(returnType)) {
+      return CallbackType.FUTURE;
     } else if (void.class.equals(returnType) && lastParameter.isPresent() && Handler.class.isAssignableFrom(lastParameter.get())) {
       return CallbackType.ASYNC_HANDLER;
+    } else if (CompletableFuture.class.isAssignableFrom(returnType)) {
+      return CallbackType.COMPLETABLE_FUTURE;
+    } else if (Observable.class.isAssignableFrom(returnType)) {
+      return CallbackType.REACTIVE;
     } else {
-      return CallbackType.SYNC;
+      throw new VertxRPCException("unKnow the call back type");
     }
   }
 
@@ -325,12 +316,12 @@ public class VertxRPCClient<T> extends RPCBase implements InvocationHandler, RPC
 
   private RequestProperties extractRequestProp(Method method) {
     return Optional.ofNullable(method.getAnnotation(RequestProp.class))
-        .map(requestProp -> {
-          RequestProperties requestProperties = new RequestProperties();
-          requestProperties.setTimeout(requestProp.timeout() == 0 ? timeout : requestProp.timeUnit().toMillis(requestProp.timeout()));
-          requestProperties.setRetryTimes(requestProp.retry());
-          return requestProperties;
-        }).orElse(new RequestProperties(timeout));
+      .map(requestProp -> {
+        RequestProperties requestProperties = new RequestProperties();
+        requestProperties.setTimeout(requestProp.timeout() == 0 ? timeout : requestProp.timeUnit().toMillis(requestProp.timeout()));
+        requestProperties.setRetryTimes(requestProp.retry());
+        return requestProperties;
+      }).orElse(new RequestProperties(timeout));
   }
 
   private static class RequestProperties {

@@ -1,20 +1,21 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.*;
+import io.vertx.core.Future;
 import org.junit.Assert;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by stream.
  */
 public class SampleFutureServiceImpl implements SampleFutureSPI {
+
   @Override
-  public CompletableFuture<Department> getDepartment(User user) {
+  public Future<Department> getDepartment(User user) {
     Assert.assertEquals(1, user.getId());
     Assert.assertEquals("name", user.getName());
 
@@ -22,24 +23,24 @@ public class SampleFutureServiceImpl implements SampleFutureSPI {
     department.setId(1);
     department.setName("research");
 
-    return CompletableFuture.completedFuture(department);
+    return Future.succeededFuture(department);
   }
 
   @Override
-  public CompletableFuture<Integer> getDepartment(int userId, Integer anotherId) {
+  public Future<Integer> getDepartment(int userId, Integer anotherId) {
     Assert.assertEquals(1, userId);
     Assert.assertEquals(2, anotherId.intValue());
-    return CompletableFuture.completedFuture(1);
+    return Future.succeededFuture(1);
   }
 
   @Override
-  public CompletableFuture<byte[]> getBytes(byte[] args) {
+  public Future<byte[]> getBytes(byte[] args) {
     Assert.assertArrayEquals("name".getBytes(), args);
-    return CompletableFuture.completedFuture(args);
+    return Future.succeededFuture(args);
   }
 
   @Override
-  public CompletableFuture<List<Department>> getDepartList(List<User> users) {
+  public Future<List<Department>> getDepartList(List<User> users) {
     Assert.assertEquals(1, users.get(0).getId());
 
     List<Department> departments = new ArrayList<>();
@@ -48,11 +49,11 @@ public class SampleFutureServiceImpl implements SampleFutureSPI {
     department.setName("research");
     departments.add(department);
 
-    return CompletableFuture.completedFuture(departments);
+    return Future.succeededFuture(departments);
   }
 
   @Override
-  public CompletableFuture<Map<String, Department>> getDepartMap(Map<String, User> userMap) {
+  public Future<Map<String, Department>> getDepartMap(Map<String, User> userMap) {
     Assert.assertNotNull(userMap);
     Assert.assertEquals(1, userMap.size());
     User user = userMap.get("name");
@@ -65,25 +66,23 @@ public class SampleFutureServiceImpl implements SampleFutureSPI {
     department.setName("research");
     departmentMap.put("research", department);
 
-    return CompletableFuture.completedFuture(departmentMap);
+    return Future.succeededFuture(departmentMap);
   }
 
   @Override
-  public CompletableFuture<Weeks> getDayOfWeek(Weeks day) {
+  public Future<Weeks> getDayOfWeek(Weeks day) {
     Assert.assertEquals(Weeks.SUNDAY, day);
-    return CompletableFuture.completedFuture(Weeks.FRIDAY);
+    return Future.succeededFuture(Weeks.FRIDAY);
   }
 
   @Override
-  public CompletableFuture<User> someException() {
-    CompletableFuture<User> completableFuture = new CompletableFuture<>();
-    completableFuture.completeExceptionally(new MyException("illegalArguments"));
-    return completableFuture;
+  public Future<User> someException() {
+    return Future.failedFuture(new MyException("illegalArguments"));
   }
 
   @Override
-  public CompletableFuture<User> nullInvoke(User user) {
+  public Future<User> nullInvoke(User user) {
     Assert.assertNull(user);
-    return CompletableFuture.completedFuture(null);
+    return Future.succeededFuture(null);
   }
 }

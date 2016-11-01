@@ -1,50 +1,45 @@
 package as.leap.rpc.example.impl;
 
 import as.leap.rpc.example.spi.*;
-import co.paralleluniverse.fibers.Suspendable;
 import org.junit.Assert;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by stream.
  */
-public class SampleSyncSPIImpl implements SampleSyncSPI {
-
-  @Suspendable
+public class SampleCompletableFutureServiceImpl implements SampleCompletableFutureSPI {
   @Override
-  public Department getDepartment(User user) {
+  public CompletableFuture<Department> getDepartment(User user) {
     Assert.assertEquals(1, user.getId());
     Assert.assertEquals("name", user.getName());
 
     Department department = new Department();
     department.setId(1);
     department.setName("research");
-    return department;
+
+    return CompletableFuture.completedFuture(department);
   }
 
-  @Suspendable
   @Override
-  public Integer getDepartment(int userId, Integer anotherId) {
+  public CompletableFuture<Integer> getDepartment(int userId, Integer anotherId) {
     Assert.assertEquals(1, userId);
     Assert.assertEquals(2, anotherId.intValue());
-    return 1;
+    return CompletableFuture.completedFuture(1);
   }
 
-  @Suspendable
   @Override
-  public byte[] getBytes(byte[] args) {
+  public CompletableFuture<byte[]> getBytes(byte[] args) {
     Assert.assertArrayEquals("name".getBytes(), args);
-
-    return args;
+    return CompletableFuture.completedFuture(args);
   }
 
-  @Suspendable
   @Override
-  public List<Department> getDepartList(List<User> users) {
+  public CompletableFuture<List<Department>> getDepartList(List<User> users) {
     Assert.assertEquals(1, users.get(0).getId());
 
     List<Department> departments = new ArrayList<>();
@@ -53,12 +48,11 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     department.setName("research");
     departments.add(department);
 
-    return departments;
+    return CompletableFuture.completedFuture(departments);
   }
 
-  @Suspendable
   @Override
-  public Map<String, Department> getDepartMap(Map<String, User> userMap) {
+  public CompletableFuture<Map<String, Department>> getDepartMap(Map<String, User> userMap) {
     Assert.assertNotNull(userMap);
     Assert.assertEquals(1, userMap.size());
     User user = userMap.get("name");
@@ -71,27 +65,25 @@ public class SampleSyncSPIImpl implements SampleSyncSPI {
     department.setName("research");
     departmentMap.put("research", department);
 
-    return departmentMap;
+    return CompletableFuture.completedFuture(departmentMap);
   }
 
-  @Suspendable
   @Override
-  public Weeks getDayOfWeek(Weeks day) {
+  public CompletableFuture<Weeks> getDayOfWeek(Weeks day) {
     Assert.assertEquals(Weeks.SUNDAY, day);
-
-    return Weeks.FRIDAY;
+    return CompletableFuture.completedFuture(Weeks.FRIDAY);
   }
 
-  @Suspendable
   @Override
-  public User someException() {
-    throw new MyException("illegalArguments");
+  public CompletableFuture<User> someException() {
+    CompletableFuture<User> completableFuture = new CompletableFuture<>();
+    completableFuture.completeExceptionally(new MyException("illegalArguments"));
+    return completableFuture;
   }
 
-  @Suspendable
   @Override
-  public User nullInvoke(User user) {
+  public CompletableFuture<User> nullInvoke(User user) {
     Assert.assertNull(user);
-    return null;
+    return CompletableFuture.completedFuture(null);
   }
 }

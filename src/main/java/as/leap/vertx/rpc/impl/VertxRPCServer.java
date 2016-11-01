@@ -4,11 +4,7 @@ package as.leap.vertx.rpc.impl;
 import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
-import co.paralleluniverse.fibers.Fiber;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxException;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
@@ -17,7 +13,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.LocalMap;
 import rx.Observable;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +32,6 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private Vertx vertx;
 
   public VertxRPCServer(RPCServerOptions options) {
-    super(options.getWireProtocol());
     vertx = options.getVertx();
     checkBusAddress(options.getBusAddress());
     this.options = options;
@@ -116,9 +110,15 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private <T> void executeInvoke(CallbackType callbackType, RPCRequest request, Message<byte[]> message, Object service, Class<?>[] argClasses, Object[] args) {
     try {
       switch (callbackType) {
-        case REACTIVE:
-          Observable<?> observable = (Observable) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
-          observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
+        case FUTURE:
+          Future<?> vertxFuture = (Future) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          vertxFuture.setHandler(asyncResult -> {
+            if (asyncResult.failed()) {
+              replyFail(asyncResult.cause(), message);
+            } else {
+              replySuccess(asyncResult.result(), message);
+            }
+          });
           break;
         case ASYNC_HANDLER:
           argClasses = Arrays.copyOf(argClasses, argClasses.length + 1);
@@ -130,29 +130,16 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
           };
           service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
           break;
+        case REACTIVE:
+          Observable<?> observable = (Observable) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
+          observable.subscribe(result -> replySuccess(result, message), ex -> replyFail(ex, message));
+          break;
         case COMPLETABLE_FUTURE:
           CompletableFuture<?> future = (CompletableFuture) service.getClass().getMethod(request.getMethodName(), argClasses).invoke(service, args);
           future.whenComplete((result, ex) -> {
             if (ex != null) replyFail(ex, message);
             else replySuccess(result, message);
           });
-          break;
-        case SYNC:
-          final Class<?>[] finalArgClasses = argClasses;
-          final Object[] finalArgs = args;
-          //using fiber
-          new Fiber<Void>(() -> {
-            try {
-              Object result = service.getClass().getMethod(request.getMethodName(), finalArgClasses).invoke(service, finalArgs);
-              replySuccess(result, message);
-            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
-              if (e instanceof InvocationTargetException) {
-                replyFail(((InvocationTargetException) e).getTargetException(), message);
-              } else {
-                replyFail(e, message);
-              }
-            }
-          }).setName("vertx-rpc-serve-fiber").start();
           break;
       }
     } catch (Exception e) {
