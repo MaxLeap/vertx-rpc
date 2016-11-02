@@ -5,7 +5,7 @@
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
   <packaging>pom</packaging>
-  <version>3.3.3</version>
+  <version>3.3.4-SNAPSHOT</version>
 
   <properties>
     <vertx-stack.version>3.3.3</vertx-stack.version>
