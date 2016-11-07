@@ -4,7 +4,7 @@
 
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
-  <version>3.3.4</version>
+  <version>3.3.5-SNAPSHOT</version>
 
   <properties>
     <vertx-stack.version>3.3.3</vertx-stack.version>
