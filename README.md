@@ -12,7 +12,7 @@ Expose interface as client for invoker, say separation of interface and implemen
 <dependency>
 	<groupId>as.leap</groupId>
 	<artifactId>vertx-rpc</artifactId>
-	<version>3.3.4</version>
+	<version>3.3.6</version>
 </dependency>
 ```
 
