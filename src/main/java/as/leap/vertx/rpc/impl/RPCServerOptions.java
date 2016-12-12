@@ -1,7 +1,6 @@
 package as.leap.vertx.rpc.impl;
 
 
-import as.leap.vertx.rpc.RPCHook;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.LocalMap;
 
@@ -13,8 +12,6 @@ public class RPCServerOptions {
   private Vertx vertx;
   private String busAddress;
   private int maxBufferedMessages;
-  private RPCHook rpcHook;
-  private boolean isHookOnEventLoop = true;
   LocalMap<String, SharedWrapper> serviceMapping;
   private static final String SERVICE_MAP_NAME = "VERTX_RPC_SERVICE";
 
@@ -26,8 +23,6 @@ public class RPCServerOptions {
   public RPCServerOptions(Vertx vertx, RPCServerOptions other) {
     this.vertx = vertx;
     this.busAddress = other.getBusAddress();
-    this.rpcHook = other.getRpcHook();
-    this.isHookOnEventLoop = other.isHookOnEventLoop;
     this.serviceMapping = vertx.sharedData().getLocalMap(SERVICE_MAP_NAME);
   }
 
@@ -55,24 +50,6 @@ public class RPCServerOptions {
 
   public RPCServerOptions setBusAddress(String busAddress) {
     this.busAddress = busAddress;
-    return this;
-  }
-
-  public RPCServerOptions setHookOnEventLoop(boolean hookOnEventLoop) {
-    isHookOnEventLoop = hookOnEventLoop;
-    return this;
-  }
-
-  public boolean isHookOnEventLoop() {
-    return isHookOnEventLoop;
-  }
-
-  public RPCHook getRpcHook() {
-    return rpcHook;
-  }
-
-  public RPCServerOptions setRpcHook(RPCHook rpcHook) {
-    this.rpcHook = rpcHook;
     return this;
   }
 
