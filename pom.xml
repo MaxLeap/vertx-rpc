@@ -10,7 +10,7 @@
 	
   <groupId>as.leap</groupId>
   <artifactId>vertx-rpc</artifactId>
-  <version>3.3.7</version>
+  <version>3.3.8-SNAPSHOT</version>
 	<name>Vert.x RPC</name>
 	
   <properties>
