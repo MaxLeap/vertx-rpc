@@ -155,7 +155,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private void replyFail(Throwable ex, Message<byte[]> message) {
     Throwable realEx = ex.getCause() != null && !ex.getCause().equals(ex) ? ex.getCause() : ex;
     JsonObject exJson = new JsonObject().put("message", realEx.getMessage());
-    exJson.put("exClass", ex.getClass().getName());
+    exJson.put("exClass", realEx.getClass().getName());
     Stream.of(realEx.getClass().getDeclaredFields()).forEach(field -> {
       field.setAccessible(true);
       try {
