@@ -1,6 +1,7 @@
 package as.leap.vertx.rpc.impl;
 
 
+import as.leap.vertx.rpc.RPCHook;
 import as.leap.vertx.rpc.RPCServer;
 import as.leap.vertx.rpc.VertxRPCException;
 import io.vertx.core.*;
@@ -27,6 +28,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
   private final LocalMap<String, SharedWrapper> serviceMapping;
   private final MessageConsumer<byte[]> consumer;
   private RPCServerOptions options;
+  private RPCHook rpcHook;
   private Vertx vertx;
 
   public VertxRPCServer(RPCServerOptions options) {
@@ -36,6 +38,7 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
     if (options.getServiceMapping().size() == 0)
       throw new VertxRPCException("please add service implementation to RPCServerOptions.");
     this.serviceMapping = options.getServiceMapping();
+    this.rpcHook = options.getRpcHook();
     this.consumer = options.getVertx().eventBus().consumer(options.getBusAddress());
     this.consumer.setMaxBufferedMessages(options.getMaxBufferedMessages());
     registryService();
@@ -86,7 +89,19 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       final Object[] finalArgs = args;
       final Class<?>[] finalArgClasses = argClasses;
       //hook
-      executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs);
+      if (rpcHook != null) {
+        if (options.isHookOnEventLoop()) {
+          rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+          executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs);
+        } else {
+          vertx.executeBlocking(future -> {
+            rpcHook.beforeHandler(request.getServiceName(), request.getMethodName(), finalArgs, message.headers().remove(CALLBACK_TYPE));
+            future.complete();
+          }, false, event -> executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs));
+        }
+      } else {
+        executeInvoke(callbackType, request, message, service, finalArgClasses, finalArgs);
+      }
     } catch (Exception e) {
       replyFail(e, message);
     }
@@ -147,6 +162,17 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       RPCResponse response = new RPCResponse(resultClassName, resultBytes);
       byte[] responseBytes = asBytes(response);
       message.reply(responseBytes);
+      //hook
+      if (rpcHook != null) {
+        if (options.isHookOnEventLoop()) {
+          rpcHook.afterHandler(result, message.headers());
+        } else {
+          vertx.executeBlocking(future -> {
+            rpcHook.afterHandler(result, message.headers());
+            future.complete();
+          }, false, null);
+        }
+      }
     } catch (Exception e) {
       replyFail(e, message);
     }
@@ -172,6 +198,17 @@ public class VertxRPCServer extends RPCBase implements RPCServer {
       }
     });
     message.fail(500, exJson.encode());
+    //hook
+    if (rpcHook != null) {
+      if (options.isHookOnEventLoop()) {
+        rpcHook.afterHandler(ex, message.headers());
+      } else {
+        vertx.executeBlocking(future -> {
+          rpcHook.afterHandler(ex, message.headers());
+          future.complete();
+        }, false, null);
+      }
+    }
   }
 
   @Override
