@@ -41,6 +41,7 @@ public class VertxRPCAsyncTest extends VertxRPCBase {
 
     //handler
     new VertxRPCServer(new RPCServerOptions(vertx).setBusAddress(busAddressHandler)
+      .setRpcHook(new ServerServiceHook())
       .addService(new SampleHandlerServiceImpl()));
 
     RPCClientOptions<SampleHandlerSPI> rpcClientHandlerOptions = new RPCClientOptions<SampleHandlerSPI>(vertx)
